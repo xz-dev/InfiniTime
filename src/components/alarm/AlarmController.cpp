@@ -38,7 +38,7 @@ namespace {
 void AlarmController::Init(System::SystemTask* systemTask) {
   this->systemTask = systemTask;
   alarmTimer = xTimerCreate("Alarm", 1, pdFALSE, this, SetOffAlarm);
-  LoadAlarmFromFile();
+  Restore();
   if (alarm.isEnabled) {
     NRF_LOG_INFO("[AlarmController] Loaded alarm was enabled, scheduling");
     ScheduleAlarm();
@@ -49,7 +49,7 @@ void AlarmController::SaveAlarm() {
 
   // verify if is necessary to save
   if (alarmChanged) {
-    SaveAlarmToFile();
+    Save();
   }
   alarmChanged = false;
 }
@@ -144,7 +144,7 @@ void AlarmController::SetRecurrence(RecurType recurrence) {
   }
 }
 
-void AlarmController::LoadAlarmFromFile() {
+void AlarmController::Restore() {
   lfs_file_t alarmFile;
   AlarmData alarmBuffer;
 
@@ -166,7 +166,7 @@ void AlarmController::LoadAlarmFromFile() {
   NRF_LOG_INFO("[AlarmController] Loaded alarm data from file");
 }
 
-void AlarmController::SaveAlarmToFile() const {
+void AlarmController::Save() const {
   lfs_file_t alarmFile;
   if (fs.FileOpen(&alarmFile, "/alarm.dat", LFS_O_WRONLY | LFS_O_CREAT) != LFS_ERR_OK) {
     NRF_LOG_WARNING("[AlarmController] Failed to open alarm data file for saving");

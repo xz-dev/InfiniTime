@@ -78,8 +78,8 @@ namespace Pinetime {
       AlarmData alarm;
       std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> alarmTime;
 
-      void LoadAlarmFromFile();
-      void SaveAlarmToFile() const;
+      void Restore();
+      void Save() const;
     };
   }
 }
