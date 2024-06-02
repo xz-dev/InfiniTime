@@ -10,23 +10,18 @@
 using namespace Pinetime::Components;
 
 namespace {
-  void InitTheme() {
-    lv_theme_t* theme = lv_pinetime_theme_init();
-    lv_theme_set_act(theme);
-  }
-
-  lv_fs_res_t lvglOpen(lv_fs_drv_t* drv, void* file_p, const char* path, lv_fs_mode_t /*mode*/) {
-    lfs_file_t* file = static_cast<lfs_file_t*>(file_p);
+  void* lvglOpen(lv_fs_drv_t* drv, const char* path, lv_fs_mode_t /*mode*/) {
+    lfs_file_t* file = new lfs_file_t();
     Pinetime::Controllers::FS* filesys = static_cast<Pinetime::Controllers::FS*>(drv->user_data);
     int res = filesys->FileOpen(file, path, LFS_O_RDONLY);
     if (res == 0) {
       if (file->type == 0) {
-        return LV_FS_RES_FS_ERR;
+        return nullptr;
       } else {
-        return LV_FS_RES_OK;
+        return file;
       }
     }
-    return LV_FS_RES_NOT_EX;
+    return nullptr;
   }
 
   lv_fs_res_t lvglClose(lv_fs_drv_t* drv, void* file_p) {
@@ -45,7 +40,7 @@ namespace {
     return LV_FS_RES_OK;
   }
 
-  lv_fs_res_t lvglSeek(lv_fs_drv_t* drv, void* file_p, uint32_t pos) {
+  lv_fs_res_t lvglSeek(lv_fs_drv_t* drv, void* file_p, uint32_t pos, lv_fs_whence_t /*whence*/) {
     Pinetime::Controllers::FS* filesys = static_cast<Pinetime::Controllers::FS*>(drv->user_data);
     lfs_file_t* file = static_cast<lfs_file_t*>(file_p);
     filesys->FileSeek(file, pos);
@@ -53,24 +48,14 @@ namespace {
   }
 }
 
-static void disp_flush(lv_disp_drv_t* disp_drv, const lv_area_t* area, lv_color_t* color_p) {
-  auto* lvgl = static_cast<LittleVgl*>(disp_drv->user_data);
-  lvgl->FlushDisplay(area, color_p);
+static void disp_flush(lv_display_t* disp_drv, const lv_area_t* area, uint8_t* px_map) {
+  auto* lvgl = static_cast<LittleVgl*>(lv_display_get_user_data(disp_drv));
+  lvgl->FlushDisplay(area, px_map);
 }
 
-static void rounder(lv_disp_drv_t* disp_drv, lv_area_t* area) {
-  auto* lvgl = static_cast<LittleVgl*>(disp_drv->user_data);
-  if (lvgl->GetFullRefresh()) {
-    area->x1 = 0;
-    area->x2 = LV_HOR_RES - 1;
-    area->y1 = 0;
-    area->y2 = LV_VER_RES - 1;
-  }
-}
-
-bool touchpad_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data) {
-  auto* lvgl = static_cast<LittleVgl*>(indev_drv->user_data);
-  return lvgl->GetTouchPadInfo(data);
+void touchpad_read(lv_indev_t* indev_drv, lv_indev_data_t* data) {
+  auto* lvgl = static_cast<LittleVgl*>(lv_indev_get_user_data(indev_drv));
+  lvgl->GetTouchPadInfo(data);
 }
 
 LittleVgl::LittleVgl(Pinetime::Drivers::St7789& lcd, Pinetime::Controllers::FS& filesystem) : lcd {lcd}, filesystem {filesystem} {
@@ -78,48 +63,43 @@ LittleVgl::LittleVgl(Pinetime::Drivers::St7789& lcd, Pinetime::Controllers::FS& 
 
 void LittleVgl::Init() {
   lv_init();
-  InitTheme();
   InitDisplay();
+  InitTheme();
   InitTouchpad();
   InitFileSystem();
 }
 
 void LittleVgl::InitDisplay() {
-  lv_disp_buf_init(&disp_buf_2, buf2_1, buf2_2, LV_HOR_RES_MAX * 4); /*Initialize the display buffer*/
-  lv_disp_drv_init(&disp_drv);                                       /*Basic initialization*/
+  /*Set the resolution of the display*/
+  disp_buf_2 = lv_display_create(LV_HOR_RES_MAX, LV_VER_RES_MAX);
 
   /*Set up the functions to access to your display*/
 
-  /*Set the resolution of the display*/
-  disp_drv.hor_res = 240;
-  disp_drv.ver_res = 240;
-
   /*Used to copy the buffer's content to the display*/
-  disp_drv.flush_cb = disp_flush;
+  lv_display_set_flush_cb(disp_buf_2, disp_flush);
   /*Set a display buffer*/
-  disp_drv.buffer = &disp_buf_2;
-  disp_drv.user_data = this;
-  disp_drv.rounder_cb = rounder;
+  lv_display_set_buffers(disp_buf_2, buf2_1, buf2_2, sizeof(buf2_1), LV_DISPLAY_RENDER_MODE_PARTIAL);
+  lv_display_set_user_data(disp_buf_2, this);
+}
 
-  /*Finally register the driver*/
-  lv_disp_drv_register(&disp_drv);
+void LittleVgl::InitTheme() {
+  lv_theme_t* theme = lv_pinetime_theme_init();
+  lv_display_set_theme(disp_buf_2, theme);
 }
 
 void LittleVgl::InitTouchpad() {
-  lv_indev_drv_t indev_drv;
+  lv_indev_t* indev_drv = lv_indev_create();
 
-  lv_indev_drv_init(&indev_drv);
-  indev_drv.type = LV_INDEV_TYPE_POINTER;
-  indev_drv.read_cb = touchpad_read;
-  indev_drv.user_data = this;
-  lv_indev_drv_register(&indev_drv);
+  lv_indev_set_type(indev_drv, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_read_cb(indev_drv, touchpad_read);
+  lv_indev_set_user_data(indev_drv, this);
+  lv_indev_read(indev_drv);
 }
 
 void LittleVgl::InitFileSystem() {
   lv_fs_drv_t fs_drv;
   lv_fs_drv_init(&fs_drv);
 
-  fs_drv.file_size = sizeof(lfs_file_t);
   fs_drv.letter = 'F';
   fs_drv.open_cb = lvglOpen;
   fs_drv.close_cb = lvglClose;
@@ -135,21 +115,21 @@ void LittleVgl::SetFullRefresh(FullRefreshDirections direction) {
   if (scrollDirection == FullRefreshDirections::None) {
     scrollDirection = direction;
     if (scrollDirection == FullRefreshDirections::Down) {
-      lv_disp_set_direction(lv_disp_get_default(), 1);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_180);
     } else if (scrollDirection == FullRefreshDirections::Right) {
-      lv_disp_set_direction(lv_disp_get_default(), 2);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_90);
     } else if (scrollDirection == FullRefreshDirections::Left) {
-      lv_disp_set_direction(lv_disp_get_default(), 3);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_270);
     } else if (scrollDirection == FullRefreshDirections::RightAnim) {
-      lv_disp_set_direction(lv_disp_get_default(), 5);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_90);
     } else if (scrollDirection == FullRefreshDirections::LeftAnim) {
-      lv_disp_set_direction(lv_disp_get_default(), 4);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_270);
     }
   }
   fullRefresh = true;
 }
 
-void LittleVgl::FlushDisplay(const lv_area_t* area, lv_color_t* color_p) {
+void LittleVgl::FlushDisplay(const lv_area_t* area, uint8_t* px_map) {
   uint16_t y1, y2, width, height = 0;
 
   if ((scrollDirection == LittleVgl::FullRefreshDirections::Down) && (area->y2 == visibleNbLines - 1)) {
@@ -171,7 +151,7 @@ void LittleVgl::FlushDisplay(const lv_area_t* area, lv_color_t* color_p) {
       if (area->y1 == 0) {
         toScroll = height * 2;
         scrollDirection = FullRefreshDirections::None;
-        lv_disp_set_direction(lv_disp_get_default(), 0);
+        lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_0);
       } else {
         toScroll = height;
       }
@@ -191,7 +171,7 @@ void LittleVgl::FlushDisplay(const lv_area_t* area, lv_color_t* color_p) {
       if (area->y2 == visibleNbLines - 1) {
         scrollOffset += (height * 2);
         scrollDirection = FullRefreshDirections::None;
-        lv_disp_set_direction(lv_disp_get_default(), 0);
+        lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_0);
       } else {
         scrollOffset += height;
       }
@@ -201,12 +181,12 @@ void LittleVgl::FlushDisplay(const lv_area_t* area, lv_color_t* color_p) {
   } else if (scrollDirection == FullRefreshDirections::Left or scrollDirection == FullRefreshDirections::LeftAnim) {
     if (area->x2 == visibleNbLines - 1) {
       scrollDirection = FullRefreshDirections::None;
-      lv_disp_set_direction(lv_disp_get_default(), 0);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_0);
     }
   } else if (scrollDirection == FullRefreshDirections::Right or scrollDirection == FullRefreshDirections::RightAnim) {
     if (area->x1 == 0) {
       scrollDirection = FullRefreshDirections::None;
-      lv_disp_set_direction(lv_disp_get_default(), 0);
+      lv_display_set_rotation(lv_disp_get_default(), LV_DISP_ROTATION_0);
     }
   }
 
@@ -214,20 +194,20 @@ void LittleVgl::FlushDisplay(const lv_area_t* area, lv_color_t* color_p) {
     height = totalNbLines - y1;
 
     if (height > 0) {
-      lcd.DrawBuffer(area->x1, y1, width, height, reinterpret_cast<const uint8_t*>(color_p), width * height * 2);
+      lcd.DrawBuffer(area->x1, y1, width, height, px_map, width * height * 2);
     }
 
     uint16_t pixOffset = width * height;
     height = y2 + 1;
-    lcd.DrawBuffer(area->x1, 0, width, height, reinterpret_cast<const uint8_t*>(color_p + pixOffset), width * height * 2);
+    lcd.DrawBuffer(area->x1, 0, width, height, px_map + pixOffset, width * height * 2);
 
   } else {
-    lcd.DrawBuffer(area->x1, y1, width, height, reinterpret_cast<const uint8_t*>(color_p), width * height * 2);
+    lcd.DrawBuffer(area->x1, y1, width, height, px_map, width * height * 2);
   }
 
   // IMPORTANT!!!
   // Inform the graphics library that you are ready with the flushing
-  lv_disp_flush_ready(&disp_drv);
+  lv_display_flush_ready(disp_buf_2);
 }
 
 void LittleVgl::SetNewTouchPoint(int16_t x, int16_t y, bool contact) {

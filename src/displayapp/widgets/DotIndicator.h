@@ -1,5 +1,6 @@
 #pragma once
 #include <lvgl/lvgl.h>
+#include <displayapp/Colors.h>
 
 namespace Pinetime {
   namespace Applications {

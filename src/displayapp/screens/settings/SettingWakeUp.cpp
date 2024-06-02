@@ -11,51 +11,49 @@ using namespace Pinetime::Applications::Screens;
 constexpr std::array<SettingWakeUp::Option, 5> SettingWakeUp::options;
 
 namespace {
-  void event_handler(lv_obj_t* obj, lv_event_t event) {
+  void event_handler(lv_event_t* event) {
+    lv_obj_t* obj = static_cast<lv_obj_t*>(lv_event_get_target(event));
     auto* screen = static_cast<SettingWakeUp*>(obj->user_data);
-    if (event == LV_EVENT_VALUE_CHANGED) {
-      screen->UpdateSelected(obj);
-    }
+    screen->UpdateSelected(obj);
   }
 }
 
 SettingWakeUp::SettingWakeUp(Pinetime::Controllers::Settings& settingsController) : settingsController {settingsController} {
-  lv_obj_t* container1 = lv_cont_create(lv_scr_act(), nullptr);
-
-  lv_obj_set_style_local_bg_opa(container1, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
-  lv_obj_set_style_local_pad_all(container1, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, 10);
-  lv_obj_set_style_local_pad_inner(container1, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, 5);
-  lv_obj_set_style_local_border_width(container1, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, 0);
+  lv_obj_t* container1 = lv_obj_create(lv_screen_active());
+  lv_obj_set_flex_flow(container1, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_bg_opa(container1, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(container1, 10, LV_PART_MAIN);
+  lv_obj_set_style_pad_gap(container1, 5, LV_PART_MAIN);
+  lv_obj_set_style_border_width(container1, 0, LV_PART_MAIN);
 
   lv_obj_set_pos(container1, 10, 35);
   lv_obj_set_width(container1, LV_HOR_RES - 20);
   lv_obj_set_height(container1, LV_VER_RES - 20);
-  lv_cont_set_layout(container1, LV_LAYOUT_COLUMN_LEFT);
 
-  lv_obj_t* title = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_t* title = lv_label_create(lv_screen_active());
   lv_label_set_text_static(title, "Wake Up");
-  lv_label_set_align(title, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(title, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 15, 15);
+  lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(title, lv_screen_active(), LV_ALIGN_TOP_MID, 15, 15);
 
-  lv_obj_t* icon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(icon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
+  lv_obj_t* icon = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_color(icon, LV_COLOR_ORANGE, LV_PART_MAIN);
   lv_label_set_text_static(icon, Symbols::eye);
-  lv_label_set_align(icon, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(icon, title, LV_ALIGN_OUT_LEFT_MID, -10, 0);
+  lv_obj_set_style_text_align(icon, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(icon, title, LV_ALIGN_OUT_LEFT_MID, -10, 0);
 
   for (unsigned int i = 0; i < options.size(); i++) {
-    cbOption[i] = lv_checkbox_create(container1, nullptr);
+    cbOption[i] = lv_checkbox_create(container1);
     lv_checkbox_set_text(cbOption[i], options[i].name);
     if (settingsController.isWakeUpModeOn(static_cast<Controllers::Settings::WakeUpMode>(i))) {
-      lv_checkbox_set_checked(cbOption[i], true);
+      lv_obj_add_state(cbOption[i], LV_STATE_CHECKED);
     }
     cbOption[i]->user_data = this;
-    lv_obj_set_event_cb(cbOption[i], event_handler);
+    lv_obj_add_event_cb(cbOption[i], event_handler, LV_EVENT_VALUE_CHANGED, cbOption[i]);
   }
 }
 
 SettingWakeUp::~SettingWakeUp() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
   settingsController.SaveSettings();
 }
 
@@ -74,6 +72,10 @@ void SettingWakeUp::UpdateSelected(lv_obj_t* object) {
   // for example, when setting SingleTap, DoubleTap is unset and vice versa.
   auto modes = settingsController.getWakeUpModes();
   for (size_t i = 0; i < options.size(); ++i) {
-    lv_checkbox_set_checked(cbOption[i], modes[i]);
+    if (modes[i]) {
+      lv_obj_add_state(cbOption[i], LV_STATE_CHECKED);
+    } else {
+      lv_obj_remove_state(cbOption[i], LV_STATE_CHECKED);
+    }
   }
 }

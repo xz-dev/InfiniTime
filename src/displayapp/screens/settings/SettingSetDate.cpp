@@ -13,11 +13,9 @@ namespace {
   constexpr int16_t POS_X_YEAR = 72;
   constexpr int16_t POS_Y_TEXT = -6;
 
-  void event_handler(lv_obj_t* obj, lv_event_t event) {
-    auto* screen = static_cast<SettingSetDate*>(obj->user_data);
-    if (event == LV_EVENT_CLICKED) {
-      screen->HandleButtonPress();
-    }
+  void event_handler(lv_event_t* event) {
+    auto* screen = static_cast<SettingSetDate*>(lv_event_get_user_data(event));
+    screen->HandleButtonPress();
   }
 
   void ValueChangedHandler(void* userData) {
@@ -49,46 +47,45 @@ SettingSetDate::SettingSetDate(Pinetime::Controllers::DateTime& dateTimeControll
                                Pinetime::Applications::Screens::SettingSetDateTime& settingSetDateTime)
   : dateTimeController {dateTimeController}, settingSetDateTime {settingSetDateTime} {
 
-  lv_obj_t* title = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_t* title = lv_label_create(lv_screen_active());
   lv_label_set_text_static(title, "Set current date");
-  lv_label_set_align(title, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(title, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 15, 15);
+  lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(title, lv_screen_active(), LV_ALIGN_TOP_MID, 15, 15);
 
-  lv_obj_t* icon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(icon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
+  lv_obj_t* icon = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_color(icon, LV_COLOR_ORANGE, LV_PART_MAIN);
 
   lv_label_set_text_static(icon, Symbols::clock);
-  lv_label_set_align(icon, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(icon, title, LV_ALIGN_OUT_LEFT_MID, -10, 0);
+  lv_obj_set_style_text_align(icon, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(icon, title, LV_ALIGN_OUT_LEFT_MID, -10, 0);
 
   dayCounter.SetValueChangedEventCallback(this, ValueChangedHandler);
   dayCounter.Create();
   dayCounter.SetValue(dateTimeController.Day());
-  lv_obj_align(dayCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_DAY, POS_Y_TEXT);
+  lv_obj_align_to(dayCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_DAY, POS_Y_TEXT);
 
   monthCounter.EnableMonthMode();
   monthCounter.SetValueChangedEventCallback(this, ValueChangedHandler);
   monthCounter.Create();
   monthCounter.SetValue(static_cast<int>(dateTimeController.Month()));
-  lv_obj_align(monthCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_MONTH, POS_Y_TEXT);
+  lv_obj_align_to(monthCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_MONTH, POS_Y_TEXT);
 
   yearCounter.SetValueChangedEventCallback(this, ValueChangedHandler);
   yearCounter.Create();
   yearCounter.SetValue(dateTimeController.Year());
-  lv_obj_align(yearCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_YEAR, POS_Y_TEXT);
+  lv_obj_align_to(yearCounter.GetObject(), nullptr, LV_ALIGN_CENTER, POS_X_YEAR, POS_Y_TEXT);
 
-  btnSetTime = lv_btn_create(lv_scr_act(), nullptr);
-  btnSetTime->user_data = this;
+  btnSetTime = lv_btn_create(lv_screen_active());
   lv_obj_set_size(btnSetTime, 120, 48);
-  lv_obj_align(btnSetTime, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
-  lv_obj_set_style_local_bg_color(btnSetTime, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x38, 0x38, 0x38));
-  lblSetTime = lv_label_create(btnSetTime, nullptr);
+  lv_obj_align_to(btnSetTime, lv_screen_active(), LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_bg_color(btnSetTime, LV_COLOR_MAKE(0x38, 0x38, 0x38), LV_PART_MAIN);
+  lblSetTime = lv_label_create(btnSetTime);
   lv_label_set_text_static(lblSetTime, "Set");
-  lv_obj_set_event_cb(btnSetTime, event_handler);
+  lv_obj_add_event_cb(btnSetTime, event_handler, LV_EVENT_CLICKED, this);
 }
 
 SettingSetDate::~SettingSetDate() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 void SettingSetDate::HandleButtonPress() {

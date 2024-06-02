@@ -15,15 +15,15 @@ namespace {
   constexpr int16_t MinuteLength = 90;
   constexpr int16_t SecondLength = 110;
 
-  // sin(90) = 1 so the value of _lv_trigo_sin(90) is the scaling factor
-  const auto LV_TRIG_SCALE = _lv_trigo_sin(90);
+  // sin(90) = 1 so the value of lv_trigo_sin(90) is the scaling factor
+  const auto LV_TRIG_SCALE = lv_trigo_sin(90);
 
   int16_t Cosine(int16_t angle) {
-    return _lv_trigo_sin(angle + 90);
+    return lv_trigo_sin(angle + 90);
   }
 
   int16_t Sine(int16_t angle) {
-    return _lv_trigo_sin(angle);
+    return lv_trigo_sin(angle);
   }
 
   int16_t CoordinateXRelocate(int16_t x) {
@@ -34,8 +34,8 @@ namespace {
     return std::abs(y - LV_HOR_RES / 2);
   }
 
-  lv_point_t CoordinateRelocate(int16_t radius, int16_t angle) {
-    return lv_point_t {.x = CoordinateXRelocate(radius * static_cast<int32_t>(Sine(angle)) / LV_TRIG_SCALE),
+  lv_point_precise_t CoordinateRelocate(int16_t radius, int16_t angle) {
+    return lv_point_precise_t {.x = CoordinateXRelocate(radius * static_cast<int32_t>(Sine(angle)) / LV_TRIG_SCALE),
                        .y = CoordinateYRelocate(radius * static_cast<int32_t>(Cosine(angle)) / LV_TRIG_SCALE)};
   }
 
@@ -58,109 +58,115 @@ WatchFaceAnalog::WatchFaceAnalog(Controllers::DateTime& dateTimeController,
   sMinute = 99;
   sSecond = 99;
 
-  minor_scales = lv_linemeter_create(lv_scr_act(), nullptr);
-  lv_linemeter_set_scale(minor_scales, 300, 51);
-  lv_linemeter_set_angle_offset(minor_scales, 180);
+  minor_scales = lv_scale_create(lv_screen_active());
+  lv_scale_set_total_tick_count(minor_scales,51);
+  lv_scale_set_major_tick_every(minor_scales, 6);
+  lv_scale_set_rotation(minor_scales, 180);
+  lv_obj_set_style_radius(minor_scales, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_size(minor_scales, 240, 240);
-  lv_obj_align(minor_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_local_bg_opa(minor_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
-  lv_obj_set_style_local_scale_width(minor_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 4);
-  lv_obj_set_style_local_scale_end_line_width(minor_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 1);
-  lv_obj_set_style_local_scale_end_color(minor_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
+  lv_obj_align_to(minor_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_bg_color(minor_scales, LV_COLOR_GRAY, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(minor_scales, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_length(minor_scales, 4, LV_PART_INDICATOR);
+  lv_obj_set_style_length(minor_scales, 1, LV_PART_INDICATOR);
 
-  major_scales = lv_linemeter_create(lv_scr_act(), nullptr);
-  lv_linemeter_set_scale(major_scales, 300, 11);
-  lv_linemeter_set_angle_offset(major_scales, 180);
+  major_scales = lv_scale_create(lv_screen_active());
+  lv_scale_set_total_tick_count(major_scales,11);
+  lv_scale_set_major_tick_every(major_scales, 30);
+  lv_scale_set_rotation(major_scales, 180);
+  lv_obj_set_style_radius(major_scales, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_size(major_scales, 240, 240);
-  lv_obj_align(major_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_local_bg_opa(major_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
-  lv_obj_set_style_local_scale_width(major_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 6);
-  lv_obj_set_style_local_scale_end_line_width(major_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 4);
-  lv_obj_set_style_local_scale_end_color(major_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
+  lv_obj_align_to(major_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_bg_color(major_scales, LV_COLOR_WHITE, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(major_scales, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_length(major_scales, 6, LV_PART_INDICATOR);
+  lv_obj_set_style_length(major_scales, 4, LV_PART_ITEMS);
 
-  large_scales = lv_linemeter_create(lv_scr_act(), nullptr);
-  lv_linemeter_set_scale(large_scales, 180, 3);
-  lv_linemeter_set_angle_offset(large_scales, 180);
+  large_scales = lv_scale_create(lv_screen_active());
+  lv_scale_set_total_tick_count(large_scales, 3);
+  lv_scale_set_major_tick_every(large_scales, 60);
+  lv_scale_set_rotation(large_scales, 180);
+  lv_obj_set_style_radius(large_scales, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_size(large_scales, 240, 240);
-  lv_obj_align(large_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_local_bg_opa(large_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
-  lv_obj_set_style_local_scale_width(large_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 20);
-  lv_obj_set_style_local_scale_end_line_width(large_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, 4);
-  lv_obj_set_style_local_scale_end_color(large_scales, LV_LINEMETER_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_AQUA);
+  lv_obj_align_to(large_scales, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_bg_color(large_scales, LV_COLOR_AQUA, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(large_scales, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_length(large_scales, 20, LV_PART_INDICATOR);
+  lv_obj_set_style_length(large_scales, 4, LV_PART_ITEMS);
 
-  twelve = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_align(twelve, LV_LABEL_ALIGN_CENTER);
+  twelve = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_align(twelve, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   lv_label_set_text_static(twelve, "12");
   lv_obj_set_pos(twelve, 110, 10);
-  lv_obj_set_style_local_text_color(twelve, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_AQUA);
+  lv_obj_set_style_text_color(twelve, LV_COLOR_AQUA, LV_PART_MAIN);
 
-  batteryIcon.Create(lv_scr_act());
-  lv_obj_align(batteryIcon.GetObject(), nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  batteryIcon.Create(lv_screen_active());
+  lv_obj_align_to(batteryIcon.GetObject(), nullptr, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-  plugIcon = lv_label_create(lv_scr_act(), nullptr);
+  plugIcon = lv_label_create(lv_screen_active());
   lv_label_set_text_static(plugIcon, Symbols::plug);
-  lv_obj_align(plugIcon, nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_obj_align_to(plugIcon, nullptr, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-  bleIcon = lv_label_create(lv_scr_act(), nullptr);
+  bleIcon = lv_label_create(lv_screen_active());
   lv_label_set_text_static(bleIcon, "");
-  lv_obj_align(bleIcon, nullptr, LV_ALIGN_IN_TOP_RIGHT, -30, 0);
+  lv_obj_align_to(bleIcon, nullptr, LV_ALIGN_TOP_RIGHT, -30, 0);
 
-  notificationIcon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(notificationIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_LIME);
+  notificationIcon = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_color(notificationIcon, LV_COLOR_LIME, LV_PART_MAIN);
   lv_label_set_text_static(notificationIcon, NotificationIcon::GetIcon(false));
-  lv_obj_align(notificationIcon, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+  lv_obj_align_to(notificationIcon, nullptr, LV_ALIGN_TOP_LEFT, 0, 0);
 
   // Date - Day / Week day
 
-  label_date_day = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(label_date_day, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::orange);
+  label_date_day = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_color(label_date_day, Colors::orange, LV_PART_MAIN);
   lv_label_set_text_fmt(label_date_day, "%s\n%02i", dateTimeController.DayOfWeekShortToString(), dateTimeController.Day());
-  lv_label_set_align(label_date_day, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(label_date_day, nullptr, LV_ALIGN_CENTER, 50, 0);
+  lv_obj_set_style_text_align(label_date_day, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(label_date_day, nullptr, LV_ALIGN_CENTER, 50, 0);
 
-  minute_body = lv_line_create(lv_scr_act(), nullptr);
-  minute_body_trace = lv_line_create(lv_scr_act(), nullptr);
-  hour_body = lv_line_create(lv_scr_act(), nullptr);
-  hour_body_trace = lv_line_create(lv_scr_act(), nullptr);
-  second_body = lv_line_create(lv_scr_act(), nullptr);
+  minute_body = lv_line_create(lv_screen_active());
+  minute_body_trace = lv_line_create(lv_screen_active());
+  hour_body = lv_line_create(lv_screen_active());
+  hour_body_trace = lv_line_create(lv_screen_active());
+  second_body = lv_line_create(lv_screen_active());
 
   lv_style_init(&second_line_style);
-  lv_style_set_line_width(&second_line_style, LV_STATE_DEFAULT, 3);
-  lv_style_set_line_color(&second_line_style, LV_STATE_DEFAULT, LV_COLOR_RED);
-  lv_style_set_line_rounded(&second_line_style, LV_STATE_DEFAULT, true);
-  lv_obj_add_style(second_body, LV_LINE_PART_MAIN, &second_line_style);
+  lv_style_set_line_width(&second_line_style, 3);
+  lv_style_set_line_color(&second_line_style, LV_COLOR_RED);
+  lv_style_set_line_rounded(&second_line_style, true);
+  lv_obj_add_style(second_body, &second_line_style, LV_PART_MAIN);
 
   lv_style_init(&minute_line_style);
-  lv_style_set_line_width(&minute_line_style, LV_STATE_DEFAULT, 7);
-  lv_style_set_line_color(&minute_line_style, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_style_set_line_rounded(&minute_line_style, LV_STATE_DEFAULT, true);
-  lv_obj_add_style(minute_body, LV_LINE_PART_MAIN, &minute_line_style);
+  lv_style_set_line_width(&minute_line_style, 7);
+  lv_style_set_line_color(&minute_line_style, LV_COLOR_WHITE);
+  lv_style_set_line_rounded(&minute_line_style, true);
+  lv_obj_add_style(minute_body, &minute_line_style, LV_PART_MAIN);
 
   lv_style_init(&minute_line_style_trace);
-  lv_style_set_line_width(&minute_line_style_trace, LV_STATE_DEFAULT, 3);
-  lv_style_set_line_color(&minute_line_style_trace, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_style_set_line_rounded(&minute_line_style_trace, LV_STATE_DEFAULT, false);
-  lv_obj_add_style(minute_body_trace, LV_LINE_PART_MAIN, &minute_line_style_trace);
+  lv_style_set_line_width(&minute_line_style_trace, 3);
+  lv_style_set_line_color(&minute_line_style_trace, LV_COLOR_WHITE);
+  lv_style_set_line_rounded(&minute_line_style_trace, false);
+  lv_obj_add_style(minute_body_trace, &minute_line_style_trace, LV_PART_MAIN);
 
   lv_style_init(&hour_line_style);
-  lv_style_set_line_width(&hour_line_style, LV_STATE_DEFAULT, 7);
-  lv_style_set_line_color(&hour_line_style, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_style_set_line_rounded(&hour_line_style, LV_STATE_DEFAULT, true);
-  lv_obj_add_style(hour_body, LV_LINE_PART_MAIN, &hour_line_style);
+  lv_style_set_line_width(&hour_line_style, 7);
+  lv_style_set_line_color(&hour_line_style, LV_COLOR_WHITE);
+  lv_style_set_line_rounded(&hour_line_style, true);
+  lv_obj_add_style(hour_body, &hour_line_style, LV_PART_MAIN);
 
   lv_style_init(&hour_line_style_trace);
-  lv_style_set_line_width(&hour_line_style_trace, LV_STATE_DEFAULT, 3);
-  lv_style_set_line_color(&hour_line_style_trace, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_style_set_line_rounded(&hour_line_style_trace, LV_STATE_DEFAULT, false);
-  lv_obj_add_style(hour_body_trace, LV_LINE_PART_MAIN, &hour_line_style_trace);
+  lv_style_set_line_width(&hour_line_style_trace, 3);
+  lv_style_set_line_color(&hour_line_style_trace, LV_COLOR_WHITE);
+  lv_style_set_line_rounded(&hour_line_style_trace, false);
+  lv_obj_add_style(hour_body_trace, &hour_line_style_trace, LV_PART_MAIN);
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  taskRefresh = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 
   Refresh();
 }
 
 WatchFaceAnalog::~WatchFaceAnalog() {
-  lv_task_del(taskRefresh);
+  lv_timer_set_repeat_count(taskRefresh, 0);
 
   lv_style_reset(&hour_line_style);
   lv_style_reset(&hour_line_style_trace);
@@ -168,7 +174,7 @@ WatchFaceAnalog::~WatchFaceAnalog() {
   lv_style_reset(&minute_line_style_trace);
   lv_style_reset(&second_line_style);
 
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 void WatchFaceAnalog::UpdateClock() {
@@ -222,11 +228,11 @@ void WatchFaceAnalog::Refresh() {
   isCharging = batteryController.IsCharging();
   if (isCharging.IsUpdated()) {
     if (isCharging.Get()) {
-      lv_obj_set_hidden(batteryIcon.GetObject(), true);
-      lv_obj_set_hidden(plugIcon, false);
+      lv_obj_add_flag(batteryIcon.GetObject(), LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(plugIcon, LV_OBJ_FLAG_HIDDEN);
     } else {
-      lv_obj_set_hidden(batteryIcon.GetObject(), false);
-      lv_obj_set_hidden(plugIcon, true);
+      lv_obj_remove_flag(batteryIcon.GetObject(), LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(plugIcon, LV_OBJ_FLAG_HIDDEN);
       SetBatteryIcon();
     }
   }

@@ -42,7 +42,7 @@ std::unique_ptr<Screen> SettingSetDateTime::screenSetTime() {
 }
 
 SettingSetDateTime::~SettingSetDateTime() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 void SettingSetDateTime::Advance() {

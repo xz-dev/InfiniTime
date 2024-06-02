@@ -35,7 +35,7 @@ ApplicationList::ApplicationList(DisplayApp* app,
 }
 
 ApplicationList::~ApplicationList() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 bool ApplicationList::OnTouchEvent(Pinetime::Applications::TouchEvents event) {

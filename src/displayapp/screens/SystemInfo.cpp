@@ -68,7 +68,7 @@ SystemInfo::SystemInfo(Pinetime::Applications::DisplayApp* app,
 }
 
 SystemInfo::~SystemInfo() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 bool SystemInfo::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
@@ -76,26 +76,29 @@ bool SystemInfo::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
 }
 
 std::unique_ptr<Screen> SystemInfo::CreateScreen1() {
-  lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_recolor(label, true);
-  lv_label_set_text_fmt(label,
-                        "#FFFF00 InfiniTime#\n\n"
-                        "#808080 Version# %ld.%ld.%ld\n"
-                        "#808080 Short Ref# %s\n"
-                        "#808080 Build date#\n"
-                        "%s\n"
-                        "%s\n\n"
-                        "#808080 Bootloader# %s",
-                        Version::Major(),
-                        Version::Minor(),
-                        Version::Patch(),
-                        Version::GitCommitHash(),
-                        __DATE__,
-                        __TIME__,
-                        BootloaderVersion::VersionString());
-  lv_label_set_align(label, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(label, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
-  return std::make_unique<Screens::Label>(0, 5, label);
+  lv_obj_t* spans = lv_spangroup_create(lv_screen_active());
+  lv_span_t* span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, "InfiniTime\n\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0xFF, 0xFF, 0x00));
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, get_text_fmt("Version %u.%u.%u\n", Version::Major(), Version::Minor(), Version::Patch()));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, get_text_fmt("Short Ref %s\n", Version::GitCommitHash()));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, "Build date\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, __DATE__ "\n");
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, __TIME__ "\n\n");
+  span = lv_spangroup_new_span(spans);
+  lv_span_set_text(span, get_text_fmt("Bootloader %s\n", BootloaderVersion::VersionString()));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  lv_spangroup_set_align(spans, LV_TEXT_ALIGN_CENTER);
+  lv_obj_align_to(spans, lv_screen_active(), LV_ALIGN_CENTER, 0, 0);
+  return std::make_unique<Screens::Label>(0, 5, spans);
 }
 
 std::unique_ptr<Screen> SystemInfo::CreateScreen2() {
@@ -142,71 +145,98 @@ std::unique_ptr<Screen> SystemInfo::CreateScreen2() {
   #define TARGET_DEVICE_NAME "UNKNOWN"
 #endif
 
-  lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_recolor(label, true);
-  lv_label_set_text_fmt(label,
-                        "#808080 Date# %04d-%02d-%02d\n"
-                        "#808080 Time# %02d:%02d:%02d\n"
-                        "#808080 Uptime#\n %02lud %02lu:%02lu:%02lu\n"
-                        "#808080 Battery# %d%%/%03imV\n"
-                        "#808080 Backlight# %s\n"
-                        "#808080 Last reset# %s\n"
-                        "#808080 Accel.# %s\n"
-                        "#808080 Touch.# %x.%x.%x\n"
-                        "#808080 Model# %s",
-                        dateTimeController.Year(),
-                        static_cast<uint8_t>(dateTimeController.Month()),
-                        dateTimeController.Day(),
-                        dateTimeController.Hours(),
-                        dateTimeController.Minutes(),
-                        dateTimeController.Seconds(),
-                        uptimeDays,
-                        uptimeHours,
-                        uptimeMinutes,
-                        uptimeSeconds,
-                        batteryPercent,
-                        batteryController.Voltage(),
-                        brightnessController.ToString(),
-                        resetReason,
-                        ToString(motionController.DeviceType()),
-                        touchPanel.GetChipId(),
-                        touchPanel.GetVendorId(),
-                        touchPanel.GetFwVersion(),
-                        TARGET_DEVICE_NAME);
-  lv_obj_align(label, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
+  lv_obj_t* label = lv_spangroup_create(lv_screen_active());
+  lv_span_t* span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Date");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span,
+                   get_text_fmt(" %04d-%02d-%02d\n",
+                                dateTimeController.Year(),
+                                static_cast<uint8_t>(dateTimeController.Month()),
+                                dateTimeController.Day()));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Time");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(
+    span,
+    get_text_fmt(" %02d:%02d:%02d\n", dateTimeController.Hours(), dateTimeController.Minutes(), dateTimeController.Seconds()));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Uptime");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %02lu:%02lu:%02lu\n", uptimeDays, uptimeHours, uptimeMinutes));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Battery");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %d%%/%03imV\n", batteryPercent, batteryController.Voltage()));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Backlight");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %s\n", brightnessController.ToString()));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Last reset");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %s\n", resetReason));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Accel.");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %s\n", ToString(motionController.DeviceType())));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Touch.");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" %x.%x.%x\n", touchPanel.GetChipId(), touchPanel.GetVendorId(), touchPanel.GetFwVersion()));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Model");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, " " TARGET_DEVICE_NAME);
+  lv_spangroup_set_align(label, LV_TEXT_ALIGN_CENTER);
+  lv_spangroup_refr_mode(label);
+  lv_obj_align_to(label, lv_screen_active(), LV_ALIGN_CENTER, 0, 0);
   return std::make_unique<Screens::Label>(1, 5, label);
 }
 
 extern int mallocFailedCount;
 extern int stackOverflowCount;
+
 std::unique_ptr<Screen> SystemInfo::CreateScreen3() {
   lv_mem_monitor_t mon;
   lv_mem_monitor(&mon);
 
-  lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_recolor(label, true);
+  lv_obj_t* label = lv_spangroup_create(lv_screen_active());
   const auto& bleAddr = bleController.Address();
-  lv_label_set_text_fmt(label,
-                        "#808080 BLE MAC#\n"
-                        " %02x:%02x:%02x:%02x:%02x:%02x"
-                        "\n"
-                        "\n"
-                        "#808080 Memory heap#\n"
-                        " #808080 Free# %d\n"
-                        " #808080 Min free# %d\n"
-                        " #808080 Alloc err# %d\n"
-                        " #808080 Ovrfl err# %d\n",
-                        bleAddr[5],
-                        bleAddr[4],
-                        bleAddr[3],
-                        bleAddr[2],
-                        bleAddr[1],
-                        bleAddr[0],
-                        xPortGetFreeHeapSize(),
-                        xPortGetMinimumEverFreeHeapSize(),
-                        mallocFailedCount,
-                        stackOverflowCount);
-  lv_obj_align(label, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
+  lv_span_t* span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "BLE MAC\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(
+    span,
+    get_text_fmt(" %02x:%02x:%02x:%02x:%02x:%02x\n\n", bleAddr[5], bleAddr[4], bleAddr[3], bleAddr[2], bleAddr[1], bleAddr[0]));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Memory heap\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" Free %d\n", xPortGetFreeHeapSize()));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" Min free %d\n", xPortGetMinimumEverFreeHeapSize()));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" Alloc err %d\n", mallocFailedCount));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, get_text_fmt(" Ovrfl err %d\n", stackOverflowCount));
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  lv_spangroup_set_align(label, LV_TEXT_ALIGN_CENTER);
+  lv_spangroup_refr_mode(label);
+  lv_obj_align_to(label, lv_screen_active(), LV_ALIGN_CENTER, 0, 0);
   return std::make_unique<Screens::Label>(2, 5, label);
 }
 
@@ -218,11 +248,11 @@ std::unique_ptr<Screen> SystemInfo::CreateScreen4() {
   static constexpr uint8_t maxTaskCount = 9;
   TaskStatus_t tasksStatus[maxTaskCount];
 
-  lv_obj_t* infoTask = lv_table_create(lv_scr_act(), nullptr);
+  lv_obj_t* infoTask = lv_table_create(lv_screen_active());
   lv_table_set_col_cnt(infoTask, 4);
   lv_table_set_row_cnt(infoTask, maxTaskCount + 1);
-  lv_obj_set_style_local_pad_all(infoTask, LV_TABLE_PART_CELL1, LV_STATE_DEFAULT, 0);
-  lv_obj_set_style_local_border_color(infoTask, LV_TABLE_PART_CELL1, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_obj_set_style_pad_all(infoTask, 0, LV_PART_ITEMS);
+  lv_obj_set_style_border_color(infoTask, Colors::lightGray, LV_PART_MAIN);
 
   lv_table_set_cell_value(infoTask, 0, 0, "#");
   lv_table_set_col_width(infoTask, 0, 30);
@@ -272,18 +302,29 @@ std::unique_ptr<Screen> SystemInfo::CreateScreen4() {
 }
 
 std::unique_ptr<Screen> SystemInfo::CreateScreen5() {
-  lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_recolor(label, true);
-  lv_label_set_text_static(label,
-                           "Software Licensed\n"
-                           "under the terms of\n"
-                           "the GNU General\n"
-                           "Public License v3\n"
-                           "#808080 Source code#\n"
-                           "#FFFF00 https://github.com/#\n"
-                           "#FFFF00 InfiniTimeOrg/#\n"
-                           "#FFFF00 InfiniTime#");
-  lv_label_set_align(label, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(label, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
+  lv_obj_t* label = lv_spangroup_create(lv_screen_active());
+  lv_span_t* span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Software Licensed\n");
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "under the terms of\n");
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "the GNU General\n");
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Public License v3\n");
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "Source code\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0x80, 0x80, 0x80));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "https://github.com/\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0xFF, 0xFF, 0x00));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "InfiniTimeOrg/\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0xFF, 0xFF, 0x00));
+  span = lv_spangroup_new_span(label);
+  lv_span_set_text(span, "InfiniTime\n");
+  lv_style_set_text_color(&span->style, LV_COLOR_MAKE(0xFF, 0xFF, 0x00));
+  lv_spangroup_set_align(label, LV_TEXT_ALIGN_CENTER);
+  lv_spangroup_refr_mode(label);
+  lv_obj_align_to(label, lv_screen_active(), LV_ALIGN_CENTER, 0, 0);
   return std::make_unique<Screens::Label>(4, 5, label);
 }

@@ -6,61 +6,65 @@
 
 using namespace Pinetime::Applications::Screens;
 
-static void btnEventHandler(lv_obj_t* obj, lv_event_t event) {
-  auto* screen = static_cast<Timer*>(obj->user_data);
-  if (event == LV_EVENT_PRESSED) {
-    screen->ButtonPressed();
-  } else if (event == LV_EVENT_RELEASED || event == LV_EVENT_PRESS_LOST) {
-    screen->MaskReset();
-  } else if (event == LV_EVENT_SHORT_CLICKED) {
-    screen->ToggleRunning();
+static void btnEventHandler(lv_event_t* event) {
+  auto* screen = static_cast<Timer*>(lv_event_get_user_data(event));
+  lv_event_code_t code = lv_event_get_code(event);
+  switch (code) {
+    case LV_EVENT_PRESSED:
+      screen->ButtonPressed();
+      break;
+    case LV_EVENT_RELEASED:
+    case LV_EVENT_PRESS_LOST:
+      screen->MaskReset();
+      break;
+    case LV_EVENT_SHORT_CLICKED:
+      screen->ToggleRunning();
+      break;
+    default:
+      break;
   }
 }
 
 Timer::Timer(Controllers::Timer& timerController) : timer {timerController} {
 
-  lv_obj_t* colonLabel = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_font(colonLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_76);
-  lv_obj_set_style_local_text_color(colonLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
+  lv_obj_t* colonLabel = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_font(colonLabel, &jetbrains_mono_76, LV_PART_MAIN);
+  lv_obj_set_style_text_color(colonLabel, LV_COLOR_WHITE, LV_PART_MAIN);
   lv_label_set_text_static(colonLabel, ":");
-  lv_obj_align(colonLabel, lv_scr_act(), LV_ALIGN_CENTER, 0, -29);
+  lv_obj_align_to(colonLabel, lv_screen_active(), LV_ALIGN_CENTER, 0, -29);
 
   minuteCounter.Create();
   secondCounter.Create();
-  lv_obj_align(minuteCounter.GetObject(), nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
-  lv_obj_align(secondCounter.GetObject(), nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_obj_align_to(minuteCounter.GetObject(), nullptr, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align_to(secondCounter.GetObject(), nullptr, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-  highlightObjectMask = lv_objmask_create(lv_scr_act(), nullptr);
-  lv_obj_set_size(highlightObjectMask, 240, 50);
-  lv_obj_align(highlightObjectMask, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+  // lv_obj_set_size(highlightObjectMask, 240, 50);
+  LV_DRAW_BUF_DEFINE(highlightObjectMask, 240, 50, LV_COLOR_FORMAT_ARGB8888);
+  lv_obj_t* canvas = lv_canvas_create(lv_screen_active());
+  lv_canvas_set_draw_buf(canvas, &highlightObjectMask);
+  lv_canvas_fill_bg(canvas, lv_color_hex3(0xccc), LV_OPA_COVER);
+  lv_obj_align_to(canvas, lv_screen_active(), LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_layer_t layer;
+  lv_canvas_init_layer(canvas, &layer);
 
-  lv_draw_mask_line_param_t tmpMaskLine;
-
-  lv_draw_mask_line_points_init(&tmpMaskLine, 0, 0, 0, 240, LV_DRAW_MASK_LINE_SIDE_LEFT);
-  highlightMask = lv_objmask_add_mask(highlightObjectMask, &tmpMaskLine);
-
-  lv_obj_t* btnHighlight = lv_obj_create(highlightObjectMask, nullptr);
-  lv_obj_set_style_local_radius(btnHighlight, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_RADIUS_CIRCLE);
-  lv_obj_set_style_local_bg_color(btnHighlight, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
-  lv_obj_set_size(btnHighlight, LV_HOR_RES, 50);
-  lv_obj_align(btnHighlight, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
-
-  btnObjectMask = lv_objmask_create(lv_scr_act(), nullptr);
-  lv_obj_set_size(btnObjectMask, 240, 50);
-  lv_obj_align(btnObjectMask, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
-
-  lv_draw_mask_line_points_init(&tmpMaskLine, 0, 0, 0, 240, LV_DRAW_MASK_LINE_SIDE_RIGHT);
-  btnMask = lv_objmask_add_mask(btnObjectMask, &tmpMaskLine);
-
-  btnPlayPause = lv_btn_create(btnObjectMask, nullptr);
+  btnPlayPause = lv_btn_create(btnObjectMask);
   btnPlayPause->user_data = this;
-  lv_obj_set_style_local_radius(btnPlayPause, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_RADIUS_CIRCLE);
-  lv_obj_set_style_local_bg_color(btnPlayPause, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
-  lv_obj_set_event_cb(btnPlayPause, btnEventHandler);
+  lv_obj_set_style_radius(btnPlayPause, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(btnPlayPause, Colors::bgAlt, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(btnPlayPause, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_add_event_cb(btnPlayPause, btnEventHandler, LV_EVENT_ALL, this);
   lv_obj_set_size(btnPlayPause, LV_HOR_RES, 50);
 
-  txtPlayPause = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_align(txtPlayPause, btnPlayPause, LV_ALIGN_CENTER, 0, 0);
+  btnMask = lv_bar_create(btnPlayPause);
+  lv_obj_center(btnMask);
+  lv_obj_set_size(btnMask, LV_HOR_RES, 50);
+  lv_obj_set_style_radius(btnMask, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_bar_set_range(btnMask, 0, 240);
+  lv_obj_set_style_bg_color(btnMask, LV_COLOR_ORANGE, LV_PART_INDICATOR);
+  lv_obj_set_style_bg_grad_opa(btnMask, LV_OPA_TRANSP, LV_PART_INDICATOR);
+
+  txtPlayPause = lv_label_create(lv_screen_active());
+  lv_obj_align_to(txtPlayPause, btnPlayPause, LV_ALIGN_CENTER, 0, 0);
 
   if (timer.IsRunning()) {
     SetTimerRunning();
@@ -68,12 +72,12 @@ Timer::Timer(Controllers::Timer& timerController) : timer {timerController} {
     SetTimerStopped();
   }
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  taskRefresh = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 }
 
 Timer::~Timer() {
-  lv_task_del(taskRefresh);
-  lv_obj_clean(lv_scr_act());
+  lv_timer_set_repeat_count(taskRefresh, 0);
+  lv_obj_clean(lv_screen_active());
 }
 
 void Timer::ButtonPressed() {
@@ -93,13 +97,7 @@ void Timer::MaskReset() {
 }
 
 void Timer::UpdateMask() {
-  lv_draw_mask_line_param_t maskLine;
-
-  lv_draw_mask_line_points_init(&maskLine, maskPosition, 0, maskPosition, 240, LV_DRAW_MASK_LINE_SIDE_LEFT);
-  lv_objmask_update_mask(highlightObjectMask, highlightMask, &maskLine);
-
-  lv_draw_mask_line_points_init(&maskLine, maskPosition, 0, maskPosition, 240, LV_DRAW_MASK_LINE_SIDE_RIGHT);
-  lv_objmask_update_mask(btnObjectMask, btnMask, &maskLine);
+  lv_bar_set_value(btnMask, maskPosition, LV_ANIM_ON);
 }
 
 void Timer::Refresh() {

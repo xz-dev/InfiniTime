@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <lvgl/src/lv_core/lv_obj.h>
+#include <lvgl/src/core/lv_obj.h>
 
 namespace Pinetime {
   namespace Applications {

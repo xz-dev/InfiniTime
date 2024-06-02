@@ -50,3 +50,12 @@ src/arm-none-eabi
 
 # clangd
 .cache/
+.ccls-cache/
+.cmake/
+
+# emacs
+.emacs*
+
+# ccls
+compile_commands.json
+post_build.sh

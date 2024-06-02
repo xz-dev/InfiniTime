@@ -29,7 +29,7 @@ namespace Pinetime {
                      std::function<void(uint32_t)> OnValueChanged,
                      std::array<Item, MaxItems> options);
         ~CheckboxList() override;
-        void UpdateSelected(lv_obj_t* object, lv_event_t event);
+        void UpdateSelected(lv_obj_t* object, lv_event_t* event);
 
       private:
         const uint8_t screenID;

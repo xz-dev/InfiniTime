@@ -49,7 +49,7 @@ RUN apt-get update -qq \
 RUN pip3 install adafruit-nrfutil
 RUN pip3 install -Iv cryptography==3.3
 RUN pip3 install cbor
-RUN npm i lv_font_conv@1.5.2 -g
+RUN npm i lv_font_conv@1.5.3 -g
 
 # build.sh knows how to compile
 COPY build.sh /opt/

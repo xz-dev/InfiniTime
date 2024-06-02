@@ -58,5 +58,25 @@
       "size": 115,
       "format": "bin",
       "target_path": "/fonts/"
+   },
+   "lxgw_20": {
+      "sources": [
+         {
+            "file": "fonts/lxgw/JetBrainsMono-Bold.ttf",
+            "range": "0x20-0x7e, 0x410-0x44f, 0xB0"
+         },
+         {
+            "file": "fonts/lxgw/FontAwesome5-Solid+Brands+Regular.woff",
+            "range": "0xf294, 0xf242, 0xf54b, 0xf21e, 0xf1e6, 0xf017, 0xf129, 0xf03a, 0xf185, 0xf560, 0xf001, 0xf3fd, 0xf1fc, 0xf45d, 0xf59f, 0xf5a0, 0xf027, 0xf028, 0xf6a9, 0xf04b, 0xf04c, 0xf048, 0xf051, 0xf095, 0xf3dd, 0xf04d, 0xf2f2, 0xf024, 0xf252, 0xf569, 0xf06e, 0xf015, 0xf00c, 0xf0f3, 0xf522, 0xf743"
+         },
+         {
+            "file": "fonts/lxgw/LXGWNeoXiHei.ttf",
+            "range": "0x4e94, 0x5341"
+         }
+      ],
+      "bpp": 1,
+      "size": 40,
+      "format": "bin",
+      "target_path": "/fonts/"
    }
 }

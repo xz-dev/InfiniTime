@@ -5,17 +5,33 @@
 using namespace Pinetime::Applications::Screens;
 
 namespace {
-  void eventHandler(lv_obj_t* obj, lv_event_t event) {
-    auto* screen = static_cast<Metronome*>(obj->user_data);
-    screen->OnEvent(obj, event);
+  void eventBpmArcHandler(lv_event_t* event) {
+    auto* screen = static_cast<Metronome*>(lv_event_get_user_data(event));
+    screen->OnBpmArcEvent(event);
   }
 
-  lv_obj_t* createLabel(const char* name, lv_obj_t* reference, lv_align_t align, lv_font_t* font, uint8_t x, uint8_t y) {
-    lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-    lv_obj_set_style_local_text_font(label, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, font);
-    lv_obj_set_style_local_text_color(label, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  void eventBpmDropdownHandler(lv_event_t* event) {
+    auto* obj = static_cast<lv_obj_t*>(lv_event_get_user_data(event));
+    auto* screen = static_cast<Metronome*>(lv_obj_get_user_data(obj));
+    screen->OnBpmDropdownEvent(obj ,event);
+  }
+
+  void eventBpmTapHandler(lv_event_t* event) {
+    auto* screen = static_cast<Metronome*>(lv_event_get_user_data(event));
+    screen->OnBpmTapEvent(event);
+  }
+
+  void eventPlayPauseHandler(lv_event_t* event) {
+    auto* screen = static_cast<Metronome*>(lv_event_get_user_data(event));
+    screen->OnPlayPauseEvent(event);
+  }
+
+  lv_obj_t* createLabel(const char* name, lv_obj_t* reference, lv_align_t align, const lv_font_t* font, uint8_t x, uint8_t y) {
+    lv_obj_t* label = lv_label_create(lv_screen_active());
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, Colors::lightGray, LV_PART_MAIN);
     lv_label_set_text(label, name);
-    lv_obj_align(label, reference, align, x, y);
+    lv_obj_align_to(label, reference, align, x, y);
 
     return label;
   }
@@ -24,56 +40,53 @@ namespace {
 Metronome::Metronome(Controllers::MotorController& motorController, System::SystemTask& systemTask)
   : motorController {motorController}, systemTask {systemTask} {
 
-  bpmArc = lv_arc_create(lv_scr_act(), nullptr);
-  bpmArc->user_data = this;
-  lv_obj_set_event_cb(bpmArc, eventHandler);
+  bpmArc = lv_arc_create(lv_screen_active());
+  lv_obj_add_event_cb(bpmArc, eventBpmArcHandler, LV_EVENT_VALUE_CHANGED, this);
   lv_arc_set_bg_angles(bpmArc, 0, 270);
   lv_arc_set_rotation(bpmArc, 135);
   lv_arc_set_range(bpmArc, 40, 220);
   lv_arc_set_value(bpmArc, bpm);
   lv_obj_set_size(bpmArc, 210, 210);
-  lv_arc_set_adjustable(bpmArc, true);
-  lv_obj_align(bpmArc, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 0, 0);
+  lv_obj_align_to(bpmArc, lv_screen_active(), LV_ALIGN_TOP_MID, 0, 0);
 
-  bpmValue = createLabel("120", bpmArc, LV_ALIGN_IN_TOP_MID, &jetbrains_mono_76, 0, 55);
+  bpmValue = createLabel("120", bpmArc, LV_ALIGN_TOP_MID, &jetbrains_mono_76, 0, 55);
   createLabel("bpm", bpmValue, LV_ALIGN_OUT_BOTTOM_MID, &jetbrains_mono_bold_20, 0, 0);
 
-  bpmTap = lv_btn_create(lv_scr_act(), nullptr);
+  bpmTap = lv_btn_create(lv_screen_active());
   bpmTap->user_data = this;
-  lv_obj_set_event_cb(bpmTap, eventHandler);
-  lv_obj_set_style_local_bg_opa(bpmTap, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
+  lv_obj_add_event_cb(bpmTap, eventBpmTapHandler, LV_EVENT_ALL, this);
+  lv_obj_set_style_bg_opa(bpmTap, LV_OPA_TRANSP, LV_PART_MAIN);
   lv_obj_set_height(bpmTap, 80);
-  lv_obj_align(bpmTap, bpmValue, LV_ALIGN_IN_TOP_MID, 0, 0);
+  lv_obj_align_to(bpmTap, bpmValue, LV_ALIGN_TOP_MID, 0, 0);
 
-  bpbDropdown = lv_dropdown_create(lv_scr_act(), nullptr);
+  bpbDropdown = lv_dropdown_create(lv_screen_active());
   bpbDropdown->user_data = this;
-  lv_obj_set_event_cb(bpbDropdown, eventHandler);
+  lv_obj_add_event_cb(bpbDropdown, eventBpmDropdownHandler, LV_EVENT_VALUE_CHANGED, bpbDropdown);
   lv_obj_set_size(bpbDropdown, 115, 50);
-  lv_obj_align(bpbDropdown, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
+  lv_obj_align_to(bpbDropdown, lv_screen_active(), LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_dropdown_set_options(bpbDropdown, "1\n2\n3\n4\n5\n6\n7\n8\n9");
   lv_dropdown_set_selected(bpbDropdown, bpb - 1);
-  lv_dropdown_set_show_selected(bpbDropdown, false);
-  lv_dropdown_set_text(bpbDropdown, "");
+  lv_dropdown_set_text(bpbDropdown, nullptr);
 
-  currentBpbText = lv_label_create(bpbDropdown, nullptr);
+  currentBpbText = lv_label_create(bpbDropdown);
   lv_label_set_text_fmt(currentBpbText, "%d bpb", bpb);
-  lv_obj_align(currentBpbText, bpbDropdown, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_align_to(currentBpbText, bpbDropdown, LV_ALIGN_CENTER, 0, 0);
 
-  playPause = lv_btn_create(lv_scr_act(), nullptr);
+  playPause = lv_btn_create(lv_screen_active());
   playPause->user_data = this;
-  lv_obj_set_event_cb(playPause, eventHandler);
+  lv_obj_add_event_cb(playPause, eventPlayPauseHandler, LV_EVENT_CLICKED, this);
   lv_obj_set_size(playPause, 115, 50);
-  lv_obj_align(playPause, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
-  lblPlayPause = lv_label_create(playPause, nullptr);
+  lv_obj_align_to(playPause, lv_screen_active(), LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+  lblPlayPause = lv_label_create(playPause);
   lv_label_set_text_static(lblPlayPause, Symbols::play);
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  taskRefresh = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 }
 
 Metronome::~Metronome() {
-  lv_task_del(taskRefresh);
+  lv_timer_set_repeat_count(taskRefresh, 0);
   systemTask.PushMessage(System::Messages::EnableSleeping);
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 void Metronome::Refresh() {
@@ -91,55 +104,50 @@ void Metronome::Refresh() {
   }
 }
 
-void Metronome::OnEvent(lv_obj_t* obj, lv_event_t event) {
-  switch (event) {
-    case LV_EVENT_VALUE_CHANGED: {
-      if (obj == bpmArc) {
-        bpm = lv_arc_get_value(bpmArc);
-        lv_label_set_text_fmt(bpmValue, "%03d", bpm);
-      } else if (obj == bpbDropdown) {
-        bpb = lv_dropdown_get_selected(obj) + 1;
-        lv_label_set_text_fmt(currentBpbText, "%d bpb", bpb);
-        lv_obj_realign(currentBpbText);
-      }
-      break;
-    }
+void Metronome::OnBpmArcEvent([[maybe_unused]] lv_event_t* event) {
+  bpm = lv_arc_get_value(bpmArc);
+  lv_label_set_text_fmt(bpmValue, "%03d", bpm);
+}
+
+void Metronome::OnBpmDropdownEvent(lv_obj_t * obj, [[maybe_unused]] lv_event_t* event) {
+  bpb = lv_dropdown_get_selected(obj) + 1;
+  lv_label_set_text_fmt(currentBpbText, "%d bpb", bpb);
+  lv_obj_align_to(currentBpbText, bpbDropdown, LV_ALIGN_CENTER, 0, 0);
+}
+
+void Metronome::OnBpmTapEvent(lv_event_t* event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  switch (code) {
     case LV_EVENT_PRESSED: {
-      if (obj == bpmTap) {
-        TickType_t delta = xTaskGetTickCount() - tappedTime;
-        if (tappedTime != 0 && delta < configTICK_RATE_HZ * 3) {
-          bpm = configTICK_RATE_HZ * 60 / delta;
-          lv_arc_set_value(bpmArc, bpm);
-          lv_label_set_text_fmt(bpmValue, "%03d", bpm);
-        }
-        tappedTime = xTaskGetTickCount();
-        allowExit = true;
+      TickType_t delta = xTaskGetTickCount() - tappedTime;
+      if (tappedTime != 0 && delta < configTICK_RATE_HZ * 3) {
+        bpm = configTICK_RATE_HZ * 60 / delta;
+        lv_arc_set_value(bpmArc, bpm);
+        lv_label_set_text_fmt(bpmValue, "%03d", bpm);
       }
+      tappedTime = xTaskGetTickCount();
+      allowExit = true;
       break;
     }
     case LV_EVENT_RELEASED:
     case LV_EVENT_PRESS_LOST:
-      if (obj == bpmTap) {
-        allowExit = false;
-      }
+      allowExit = false;
       break;
-    case LV_EVENT_CLICKED: {
-      if (obj == playPause) {
-        metronomeStarted = !metronomeStarted;
-        if (metronomeStarted) {
-          lv_label_set_text_static(lblPlayPause, Symbols::pause);
-          systemTask.PushMessage(System::Messages::DisableSleeping);
-          startTime = xTaskGetTickCount();
-          counter = 1;
-        } else {
-          lv_label_set_text_static(lblPlayPause, Symbols::play);
-          systemTask.PushMessage(System::Messages::EnableSleeping);
-        }
-      }
-      break;
-    }
     default:
       break;
+  }
+}
+
+void Metronome::OnPlayPauseEvent([[maybe_unused]] lv_event_t* event) {
+  metronomeStarted = !metronomeStarted;
+  if (metronomeStarted) {
+    lv_label_set_text_static(lblPlayPause, Symbols::pause);
+    systemTask.PushMessage(System::Messages::DisableSleeping);
+    startTime = xTaskGetTickCount();
+    counter = 1;
+  } else {
+    lv_label_set_text_static(lblPlayPause, Symbols::play);
+    systemTask.PushMessage(System::Messages::EnableSleeping);
   }
 }
 

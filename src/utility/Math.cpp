@@ -1,6 +1,6 @@
 #include "utility/Math.h"
 
-#include <lvgl/src/lv_misc/lv_math.h>
+#include <lvgl/src/misc/lv_math.h>
 
 using namespace Pinetime::Utility;
 
@@ -13,9 +13,9 @@ int16_t Pinetime::Utility::Asin(int16_t arg) {
   int16_t low = 0;
   int16_t high = 90;
   while (low <= high) {
-    int16_t sinAngle = _lv_trigo_sin(angle);
-    int16_t sinAngleSub = _lv_trigo_sin(angle - 1);
-    int16_t sinAngleAdd = _lv_trigo_sin(angle + 1);
+    int16_t sinAngle = lv_trigo_sin(angle);
+    int16_t sinAngleSub = lv_trigo_sin(angle - 1);
+    int16_t sinAngleAdd = lv_trigo_sin(angle + 1);
 
     if (a >= sinAngleSub && a <= sinAngleAdd) {
       if (a <= (sinAngleSub + sinAngle) / 2) {

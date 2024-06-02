@@ -59,5 +59,5 @@ SettingChimes::SettingChimes(Pinetime::Controllers::Settings& settingsController
 }
 
 SettingChimes::~SettingChimes() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }

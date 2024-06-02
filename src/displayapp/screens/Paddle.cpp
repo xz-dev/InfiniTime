@@ -7,35 +7,43 @@
 using namespace Pinetime::Applications::Screens;
 
 Paddle::Paddle(Pinetime::Components::LittleVgl& lvgl) : lvgl {lvgl} {
-  background = lv_obj_create(lv_scr_act(), nullptr);
+  background = lv_obj_create(lv_screen_active());
   lv_obj_set_size(background, LV_HOR_RES + 1, LV_VER_RES);
   lv_obj_set_pos(background, -1, 0);
-  lv_obj_set_style_local_radius(background, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, 0);
-  lv_obj_set_style_local_bg_color(background, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
-  lv_obj_set_style_local_border_color(background, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_obj_set_style_local_border_width(background, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, 1);
+  static lv_style_t style_background;
+  lv_style_set_radius(&style_background, 0);
+  lv_style_set_bg_color(&style_background, LV_COLOR_BLACK);
+  lv_style_set_border_color(&style_background, LV_COLOR_WHITE);
+  lv_style_set_border_width(&style_background, 1);
+  lv_obj_add_style(background, &style_background, LV_STATE_DEFAULT);
 
-  points = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_font(points, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
+  points = lv_label_create(lv_screen_active());
+  static lv_style_t style_points;
+  lv_style_set_text_font(&style_points, &jetbrains_mono_42);
   lv_label_set_text_static(points, "0000");
-  lv_obj_align(points, lv_scr_act(), LV_ALIGN_IN_TOP_MID, 0, 10);
+  lv_obj_align_to(points, lv_screen_active(), LV_ALIGN_TOP_MID, 0, 10);
+  lv_obj_add_style(points, &style_points, LV_STATE_DEFAULT);
 
-  paddle = lv_obj_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_bg_color(paddle, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_obj_set_style_local_radius(paddle, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, 0);
+  paddle = lv_obj_create(lv_screen_active());
+  static lv_style_t style_paddle;
+  lv_style_set_bg_color(&style_paddle, LV_COLOR_WHITE);
+  lv_style_set_radius(&style_paddle, 0);
+  lv_obj_add_style(paddle, &style_paddle, LV_STATE_DEFAULT);
   lv_obj_set_size(paddle, 4, 60);
 
-  ball = lv_obj_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_bg_color(ball, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-  lv_obj_set_style_local_radius(ball, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_RADIUS_CIRCLE);
+  ball = lv_obj_create(lv_screen_active());
+  static lv_style_t style_ball;
+  lv_style_set_bg_color(&style_ball, LV_COLOR_WHITE);
+  lv_style_set_radius(&style_ball, LV_RADIUS_CIRCLE);
+  lv_obj_add_style(ball, &style_ball, LV_STATE_DEFAULT);
   lv_obj_set_size(ball, ballSize, ballSize);
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  taskRefresh = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 }
 
 Paddle::~Paddle() {
-  lv_task_del(taskRefresh);
-  lv_obj_clean(lv_scr_act());
+  lv_timer_set_repeat_count(taskRefresh, 0);
+  lv_obj_clean(lv_screen_active());
 }
 
 void Paddle::Refresh() {

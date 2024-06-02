@@ -21,7 +21,7 @@ namespace Pinetime {
 
       void Init();
 
-      void FlushDisplay(const lv_area_t* area, lv_color_t* color_p);
+      void FlushDisplay(const lv_area_t* area, uint8_t* color_p);
       bool GetTouchPadInfo(lv_indev_data_t* ptr);
       void SetFullRefresh(FullRefreshDirections direction);
       void SetNewTouchPoint(int16_t x, int16_t y, bool contact);
@@ -37,17 +37,16 @@ namespace Pinetime {
 
     private:
       void InitDisplay();
+      void InitTheme();
       void InitTouchpad();
       void InitFileSystem();
 
       Pinetime::Drivers::St7789& lcd;
       Pinetime::Controllers::FS& filesystem;
 
-      lv_disp_buf_t disp_buf_2;
+      lv_display_t * disp_buf_2;
       lv_color_t buf2_1[LV_HOR_RES_MAX * 4];
       lv_color_t buf2_2[LV_HOR_RES_MAX * 4];
-
-      lv_disp_drv_t disp_drv;
 
       bool fullRefresh = false;
       static constexpr uint8_t nbWriteLines = 4;
@@ -62,7 +61,7 @@ namespace Pinetime {
       uint16_t writeOffset = 0;
       uint16_t scrollOffset = 0;
 
-      lv_point_t touchPoint = {};
+      lv_point_precise_t touchPoint = {};
       bool tapped = false;
       bool isCancelled = false;
     };

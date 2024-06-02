@@ -56,7 +56,7 @@ namespace Pinetime {
         lv_obj_t* lapText;
         bool isHoursLabelUpdated = false;
 
-        lv_task_t* taskRefresh;
+        lv_timer_t* taskRefresh;
       };
     }
 

@@ -6,7 +6,7 @@ namespace Pinetime {
     namespace Widgets {
       class Counter {
       public:
-        Counter(int min, int max, lv_font_t& font);
+        Counter(int min, int max, const lv_font_t& font);
 
         void Create();
         void UpBtnPressed();
@@ -37,14 +37,14 @@ namespace Pinetime {
         lv_obj_t* number;
         lv_obj_t* upperLine;
         lv_obj_t* lowerLine;
-        lv_point_t linePoints[2];
+        lv_point_precise_t linePoints[2];
         int min;
         int max;
         int value;
         const int leadingZeroCount;
         bool twelveHourMode = false;
         bool monthMode = false;
-        lv_font_t& font;
+        const lv_font_t& font;
 
         void* userData = nullptr;
       };

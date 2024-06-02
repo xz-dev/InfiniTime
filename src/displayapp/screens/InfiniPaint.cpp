@@ -13,7 +13,7 @@ InfiniPaint::InfiniPaint(Pinetime::Components::LittleVgl& lvgl, Pinetime::Contro
 }
 
 InfiniPaint::~InfiniPaint() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 bool InfiniPaint::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
@@ -67,6 +67,6 @@ bool InfiniPaint::OnTouchEvent(uint16_t x, uint16_t y) {
   area.x2 = x + (width / 2) - 1;
   area.y2 = y + (height / 2) - 1;
   lvgl.SetFullRefresh(Components::LittleVgl::FullRefreshDirections::None);
-  lvgl.FlushDisplay(&area, b);
+  lvgl.FlushDisplay(&area, reinterpret_cast<uint8_t*>(&b));
   return true;
 }

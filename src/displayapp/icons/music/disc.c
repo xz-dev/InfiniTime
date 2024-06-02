@@ -99,7 +99,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_IMG_DISC uint8_t disc_map[] = {
 
 const lv_img_dsc_t disc = {
     {
-        LV_IMG_CF_INDEXED_1BIT,
+        LV_COLOR_FORMAT_I1,
         0,
         0,
         64,
