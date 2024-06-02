@@ -25,7 +25,7 @@ Settings::Settings(Pinetime::Applications::DisplayApp* app, Pinetime::Controller
 }
 
 Settings::~Settings() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 bool Settings::OnTouchEvent(Pinetime::Applications::TouchEvents event) {

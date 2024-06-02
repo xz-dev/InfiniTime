@@ -55,5 +55,5 @@ SettingBluetooth::SettingBluetooth(Pinetime::Applications::DisplayApp* app, Pine
 }
 
 SettingBluetooth::~SettingBluetooth() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }

@@ -6,20 +6,16 @@
 using namespace Pinetime::Applications::Screens;
 
 namespace {
-  void lv_update_task(struct _lv_task_t* task) {
+  void lv_update_task(struct _lv_timer_t* task) {
     auto* user_data = static_cast<Tile*>(task->user_data);
     user_data->UpdateScreen();
   }
 
-  void event_handler(lv_obj_t* obj, lv_event_t event) {
-    if (event != LV_EVENT_VALUE_CHANGED) {
-      return;
-    }
-
-    Tile* screen = static_cast<Tile*>(obj->user_data);
-    auto* eventDataPtr = (uint32_t*) lv_event_get_data();
+  void event_handler(lv_event_t * event) {
+    Tile* screen = static_cast<Tile*>(lv_event_get_user_data(event));
+    auto* eventDataPtr = (uint32_t*)lv_indev_get_key(lv_indev_active());
     uint32_t eventData = *eventDataPtr;
-    screen->OnValueChangedEvent(obj, eventData);
+    screen->OnValueChangedEvent(eventData);
   }
 }
 
@@ -36,12 +32,12 @@ Tile::Tile(uint8_t screenID,
   settingsController.SetAppMenu(screenID);
 
   statusIcons.Create();
-  lv_obj_align(statusIcons.GetObject(), lv_scr_act(), LV_ALIGN_IN_TOP_RIGHT, -8, 0);
+  lv_obj_align_to(statusIcons.GetObject(), lv_screen_active(), LV_ALIGN_TOP_RIGHT, -8, 0);
 
   // Time
-  label_time = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_align(label_time, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(label_time, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+  label_time = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_align(label_time, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align_to(label_time, nullptr, LV_ALIGN_TOP_LEFT, 0, 0);
 
   pageIndicator.Create();
 
@@ -60,18 +56,20 @@ Tile::Tile(uint8_t screenID,
   }
   btnmMap[btIndex] = "";
 
-  btnm1 = lv_btnmatrix_create(lv_scr_act(), nullptr);
+  btnm1 = lv_btnmatrix_create(lv_screen_active());
   lv_btnmatrix_set_map(btnm1, btnmMap);
   lv_obj_set_size(btnm1, LV_HOR_RES - 16, LV_VER_RES - 60);
-  lv_obj_align(btnm1, nullptr, LV_ALIGN_CENTER, 0, 10);
+  lv_obj_align_to(btnm1, nullptr, LV_ALIGN_CENTER, 0, 10);
 
-  lv_obj_set_style_local_radius(btnm1, LV_BTNMATRIX_PART_BTN, LV_STATE_DEFAULT, 20);
-  lv_obj_set_style_local_bg_opa(btnm1, LV_BTNMATRIX_PART_BTN, LV_STATE_DEFAULT, LV_OPA_50);
-  lv_obj_set_style_local_bg_color(btnm1, LV_BTNMATRIX_PART_BTN, LV_STATE_DEFAULT, LV_COLOR_AQUA);
-  lv_obj_set_style_local_bg_opa(btnm1, LV_BTNMATRIX_PART_BTN, LV_STATE_DISABLED, LV_OPA_50);
-  lv_obj_set_style_local_bg_color(btnm1, LV_BTNMATRIX_PART_BTN, LV_STATE_DISABLED, Colors::bgDark);
-  lv_obj_set_style_local_pad_all(btnm1, LV_BTNMATRIX_PART_BG, LV_STATE_DEFAULT, 0);
-  lv_obj_set_style_local_pad_inner(btnm1, LV_BTNMATRIX_PART_BG, LV_STATE_DEFAULT, 10);
+  lv_style_t style;
+  lv_style_init(&style);
+  lv_style_set_radius(&style, 20);
+  lv_style_set_bg_opa(&style, LV_OPA_50);
+  lv_style_set_bg_color(&style, LV_COLOR_AQUA);
+  lv_style_set_bg_grad_opa(&style, LV_OPA_50);
+  lv_style_set_bg_grad_color(&style, Colors::bgDark);
+  lv_style_set_pad_all(&style, 0);
+  lv_style_set_pad_gap(&style, 10);
 
   for (uint8_t i = 0; i < 6; i++) {
     lv_btnmatrix_set_btn_ctrl(btnm1, i, LV_BTNMATRIX_CTRL_CLICK_TRIG);
@@ -81,16 +79,16 @@ Tile::Tile(uint8_t screenID,
   }
 
   btnm1->user_data = this;
-  lv_obj_set_event_cb(btnm1, event_handler);
+  lv_obj_add_event_cb(btnm1, event_handler, LV_EVENT_VALUE_CHANGED, this);
 
-  taskUpdate = lv_task_create(lv_update_task, 5000, LV_TASK_PRIO_MID, this);
+  taskUpdate = lv_timer_create(lv_update_task, 5000, this);
 
   UpdateScreen();
 }
 
 Tile::~Tile() {
-  lv_task_del(taskUpdate);
-  lv_obj_clean(lv_scr_act());
+  lv_timer_set_repeat_count(taskUpdate, 0);
+  lv_obj_clean(lv_screen_active());
 }
 
 void Tile::UpdateScreen() {
@@ -98,11 +96,7 @@ void Tile::UpdateScreen() {
   statusIcons.Update();
 }
 
-void Tile::OnValueChangedEvent(lv_obj_t* obj, uint32_t buttonId) {
-  if (obj != btnm1) {
-    return;
-  }
-
+void Tile::OnValueChangedEvent(uint32_t buttonId) {
   app->StartApp(apps[buttonId], DisplayApp::FullRefreshDirections::Up);
   running = false;
 }

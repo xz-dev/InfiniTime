@@ -8,27 +8,30 @@ StatusIcons::StatusIcons(const Controllers::Battery& batteryController, const Co
 }
 
 void StatusIcons::Create() {
-  container = lv_cont_create(lv_scr_act(), nullptr);
-  lv_cont_set_layout(container, LV_LAYOUT_ROW_TOP);
-  lv_cont_set_fit(container, LV_FIT_TIGHT);
-  lv_obj_set_style_local_pad_inner(container, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, 5);
-  lv_obj_set_style_local_bg_opa(container, LV_CONT_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
+  container = lv_obj_create(lv_screen_active());
+  lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_gap(container, 5, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, LV_PART_MAIN);
 
-  bleIcon = lv_label_create(container, nullptr);
+  bleIcon = lv_label_create(container);
   lv_label_set_text_static(bleIcon, Screens::Symbols::bluetooth);
 
-  batteryPlug = lv_label_create(container, nullptr);
+  batteryPlug = lv_label_create(container);
   lv_label_set_text_static(batteryPlug, Screens::Symbols::plug);
 
   batteryIcon.Create(container);
 
-  lv_obj_align(container, nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_obj_align_to(container, nullptr, LV_ALIGN_TOP_RIGHT, 0, 0);
 }
 
 void StatusIcons::Update() {
   powerPresent = batteryController.IsPowerPresent();
   if (powerPresent.IsUpdated()) {
-    lv_obj_set_hidden(batteryPlug, !powerPresent.Get());
+    if (powerPresent.Get()) {
+      lv_obj_clear_flag(batteryPlug, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(batteryPlug, LV_OBJ_FLAG_HIDDEN);
+    }
   }
 
   batteryPercentRemaining = batteryController.PercentRemaining();
@@ -40,8 +43,12 @@ void StatusIcons::Update() {
   bleState = bleController.IsConnected();
   bleRadioEnabled = bleController.IsRadioEnabled();
   if (bleState.IsUpdated() || bleRadioEnabled.IsUpdated()) {
-    lv_obj_set_hidden(bleIcon, !bleState.Get());
+    if (bleState.Get()) {
+      lv_obj_clear_flag(bleIcon, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(bleIcon, LV_OBJ_FLAG_HIDDEN);
+    }
   }
 
-  lv_obj_realign(container);
+  lv_obj_align_to(container, nullptr, LV_ALIGN_TOP_RIGHT, 0, 0);
 }

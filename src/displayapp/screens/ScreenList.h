@@ -33,7 +33,7 @@ namespace Pinetime {
         ScreenList& operator=(ScreenList&&) = delete;
 
         ~ScreenList() override {
-          lv_obj_clean(lv_scr_act());
+          lv_obj_clean(lv_screen_active());
         }
 
         bool OnTouchEvent(TouchEvents event) override {

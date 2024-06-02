@@ -57,5 +57,5 @@ SettingTimeFormat::SettingTimeFormat(Pinetime::Controllers::Settings& settingsCo
 }
 
 SettingTimeFormat::~SettingTimeFormat() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }

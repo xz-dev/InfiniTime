@@ -35,7 +35,11 @@ namespace Pinetime {
                        Controllers::MotorController& motorController);
         ~Alarm() override;
         void SetAlerting();
-        void OnButtonEvent(lv_obj_t* obj, lv_event_t event);
+        void OnBtnStopEvent();
+        void OnBtnInfoEvent();
+        void OnBtnMessageEvent();
+        void OnEnableSwitchEvent();
+        void OnBtnRecurEvent();
         bool OnButtonPushed() override;
         bool OnTouchEvent(TouchEvents event) override;
         void OnValueChanged();
@@ -50,12 +54,12 @@ namespace Pinetime {
         lv_obj_t* lblampm = nullptr;
         lv_obj_t* txtMessage = nullptr;
         lv_obj_t* btnMessage = nullptr;
-        lv_task_t* taskStopAlarm = nullptr;
+        lv_timer_t* taskStopAlarm = nullptr;
 
         enum class EnableButtonState { On, Off, Alerting };
         void DisableAlarm();
         void SetRecurButtonState();
-        void SetSwitchState(lv_anim_enable_t anim);
+        void SetSwitchState();
         void SetAlarm();
         void ShowInfo();
         void HideInfo();

@@ -62,7 +62,7 @@ SettingWatchFace::SettingWatchFace(Pinetime::Applications::DisplayApp* app,
 }
 
 SettingWatchFace::~SettingWatchFace() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }
 
 bool SettingWatchFace::OnTouchEvent(Pinetime::Applications::TouchEvents event) {

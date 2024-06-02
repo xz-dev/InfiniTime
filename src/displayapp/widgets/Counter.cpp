@@ -5,16 +5,18 @@
 using namespace Pinetime::Applications::Widgets;
 
 namespace {
-  void upBtnEventHandler(lv_obj_t* obj, lv_event_t event) {
-    auto* widget = static_cast<Counter*>(obj->user_data);
-    if (event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED_REPEAT) {
+  void upBtnEventHandler(lv_event_t* event) {
+    auto* widget = static_cast<Counter*>(lv_event_get_user_data(event));
+    lv_event_code_t code = lv_event_get_code(event);
+    if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT) {
       widget->UpBtnPressed();
     }
   }
 
-  void downBtnEventHandler(lv_obj_t* obj, lv_event_t event) {
-    auto* widget = static_cast<Counter*>(obj->user_data);
-    if (event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED_REPEAT) {
+  void downBtnEventHandler(lv_event_t* event) {
+    auto* widget = static_cast<Counter*>(lv_event_get_user_data(event));
+    lv_event_code_t code = lv_event_get_code(event);
+    if (code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT) {
       widget->DownBtnPressed();
     }
   }
@@ -29,7 +31,7 @@ namespace {
   }
 }
 
-Counter::Counter(int min, int max, lv_font_t& font) : min {min}, max {max}, value {min}, leadingZeroCount {digitCount(max)}, font {font} {
+Counter::Counter(int min, int max, const lv_font_t& font) : min {min}, max {max}, value {min}, leadingZeroCount {digitCount(max)}, font {font} {
 }
 
 void Counter::UpBtnPressed() {
@@ -62,19 +64,19 @@ void Counter::SetValue(int newValue) {
 }
 
 void Counter::HideControls() {
-  lv_obj_set_hidden(upBtn, true);
-  lv_obj_set_hidden(downBtn, true);
-  lv_obj_set_hidden(upperLine, true);
-  lv_obj_set_hidden(lowerLine, true);
-  lv_obj_set_style_local_bg_opa(counterContainer, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_TRANSP);
+  lv_obj_add_flag(upBtn, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(downBtn, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(upperLine, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(lowerLine, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_style_bg_opa(counterContainer, LV_OPA_TRANSP, LV_PART_MAIN);
 }
 
 void Counter::ShowControls() {
-  lv_obj_set_hidden(upBtn, false);
-  lv_obj_set_hidden(downBtn, false);
-  lv_obj_set_hidden(upperLine, false);
-  lv_obj_set_hidden(lowerLine, false);
-  lv_obj_set_style_local_bg_opa(counterContainer, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_COVER);
+  lv_obj_remove_flag(upBtn, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(downBtn, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(upperLine, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(lowerLine, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_style_bg_opa(counterContainer, LV_OPA_COVER, LV_PART_MAIN);
 }
 
 void Counter::UpdateLabel() {
@@ -121,13 +123,12 @@ void Counter::SetValueChangedEventCallback(void* userData, void (*handler)(void*
 }
 
 void Counter::Create() {
-  counterContainer = lv_obj_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_bg_color(counterContainer, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
+  counterContainer = lv_obj_create(lv_screen_active());
+  lv_obj_set_style_bg_color(counterContainer, Colors::bgAlt, LV_PART_MAIN);
 
-  number = lv_label_create(counterContainer, nullptr);
-  lv_obj_set_style_local_text_font(number, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &font);
-  lv_obj_align(number, nullptr, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_auto_realign(number, true);
+  number = lv_label_create(counterContainer);
+  lv_obj_set_style_text_font(number, &font, LV_PART_MAIN);
+  lv_obj_align_to(number, nullptr, LV_ALIGN_CENTER, 0, 0);
   if (monthMode) {
     lv_label_set_text_static(number, "Jan");
   } else {
@@ -135,7 +136,7 @@ void Counter::Create() {
   }
 
   static constexpr uint8_t padding = 5;
-  const uint8_t width = std::max(lv_obj_get_width(number) + padding * 2, 58);
+  const uint8_t width = std::max(lv_obj_get_width(number) + padding * 2, static_cast<long int>(58));
   static constexpr uint8_t btnHeight = 50;
   const uint8_t containerHeight = btnHeight * 2 + lv_obj_get_height(number) + padding * 2;
 
@@ -143,45 +144,44 @@ void Counter::Create() {
 
   UpdateLabel();
 
-  upBtn = lv_btn_create(counterContainer, nullptr);
-  lv_obj_set_style_local_bg_color(upBtn, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
+  upBtn = lv_btn_create(counterContainer);
+  lv_obj_set_style_bg_color(upBtn, Colors::bgAlt, LV_PART_MAIN);
   lv_obj_set_size(upBtn, width, btnHeight);
-  lv_obj_align(upBtn, nullptr, LV_ALIGN_IN_TOP_MID, 0, 0);
-  upBtn->user_data = this;
-  lv_obj_set_event_cb(upBtn, upBtnEventHandler);
+  lv_obj_align_to(upBtn, nullptr, LV_ALIGN_TOP_MID, 0, 0);
+  lv_obj_add_event_cb(upBtn, upBtnEventHandler, LV_EVENT_ALL, this);
 
-  lv_obj_t* upLabel = lv_label_create(upBtn, nullptr);
-  lv_obj_set_style_local_text_font(upLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
+  lv_obj_t* upLabel = lv_label_create(upBtn);
+  lv_obj_set_style_text_font(upLabel, &jetbrains_mono_42, LV_PART_MAIN);
   lv_label_set_text_static(upLabel, "+");
-  lv_obj_align(upLabel, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_align_to(upLabel, nullptr, LV_ALIGN_CENTER, 0, 0);
 
-  downBtn = lv_btn_create(counterContainer, nullptr);
-  lv_obj_set_style_local_bg_color(downBtn, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
+  downBtn = lv_btn_create(counterContainer);
+  lv_obj_set_style_bg_color(downBtn, Colors::bgAlt, LV_PART_MAIN);
   lv_obj_set_size(downBtn, width, btnHeight);
-  lv_obj_align(downBtn, nullptr, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+  lv_obj_align_to(downBtn, nullptr, LV_ALIGN_BOTTOM_MID, 0, 0);
   downBtn->user_data = this;
-  lv_obj_set_event_cb(downBtn, downBtnEventHandler);
+  lv_obj_add_event_cb(downBtn, downBtnEventHandler, LV_EVENT_ALL, this);
 
-  lv_obj_t* downLabel = lv_label_create(downBtn, nullptr);
-  lv_obj_set_style_local_text_font(downLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
+  lv_obj_t* downLabel = lv_label_create(downBtn);
+  lv_obj_set_style_text_font(downLabel, &jetbrains_mono_42, LV_PART_MAIN);
   lv_label_set_text_static(downLabel, "-");
-  lv_obj_align(downLabel, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_align_to(downLabel, nullptr, LV_ALIGN_CENTER, 0, 0);
 
   linePoints[0] = {0, 0};
   linePoints[1] = {width, 0};
 
   auto LineCreate = [&]() {
-    lv_obj_t* line = lv_line_create(counterContainer, nullptr);
+    lv_obj_t* line = lv_line_create(counterContainer);
     lv_line_set_points(line, linePoints, 2);
-    lv_obj_set_style_local_line_width(line, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, 1);
-    lv_obj_set_style_local_line_color(line, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_WHITE);
-    lv_obj_set_style_local_line_opa(line, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_20);
+    lv_obj_set_style_line_width(line, 1, LV_PART_MAIN);
+    lv_obj_set_style_line_color(line, LV_COLOR_WHITE, LV_PART_MAIN);
+    lv_obj_set_style_line_opa(line, LV_OPA_20, LV_PART_MAIN);
     return line;
   };
 
   upperLine = LineCreate();
-  lv_obj_align(upperLine, upBtn, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+  lv_obj_align_to(upperLine, upBtn, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
 
   lowerLine = LineCreate();
-  lv_obj_align(lowerLine, downBtn, LV_ALIGN_OUT_TOP_MID, 0, -1);
+  lv_obj_align_to(lowerLine, downBtn, LV_ALIGN_OUT_TOP_MID, 0, -1);
 }

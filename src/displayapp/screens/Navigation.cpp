@@ -192,49 +192,47 @@ namespace {
  */
 Navigation::Navigation(Pinetime::Controllers::NavigationService& nav) : navService(nav) {
   const auto& image = GetIcon("flag");
-  imgFlag = lv_img_create(lv_scr_act(), nullptr);
-  lv_img_set_auto_size(imgFlag, false);
+  imgFlag = lv_img_create(lv_screen_active());
   lv_obj_set_size(imgFlag, 80, 80);
   lv_img_set_src(imgFlag, image.fileName);
   lv_img_set_offset_x(imgFlag, 0);
   lv_img_set_offset_y(imgFlag, image.offset);
-  lv_obj_set_style_local_image_recolor_opa(imgFlag, LV_IMG_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_COVER);
-  lv_obj_set_style_local_image_recolor(imgFlag, LV_IMG_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_CYAN);
-  lv_obj_align(imgFlag, nullptr, LV_ALIGN_CENTER, 0, -60);
+  lv_obj_set_style_image_recolor_opa(imgFlag, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_image_recolor(imgFlag, LV_COLOR_CYAN, LV_PART_MAIN);
+  lv_obj_align_to(imgFlag, nullptr, LV_ALIGN_CENTER, 0, -60);
 
-  txtNarrative = lv_label_create(lv_scr_act(), nullptr);
+  txtNarrative = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(txtNarrative, LV_LABEL_LONG_DOT);
   lv_obj_set_width(txtNarrative, LV_HOR_RES);
   lv_obj_set_height(txtNarrative, 80);
   lv_label_set_text_static(txtNarrative, "Navigation");
-  lv_label_set_align(txtNarrative, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(txtNarrative, nullptr, LV_ALIGN_CENTER, 0, 30);
+  lv_obj_set_style_text_align(txtNarrative, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(txtNarrative, nullptr, LV_ALIGN_CENTER, 0, 30);
 
-  txtManDist = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_long_mode(txtManDist, LV_LABEL_LONG_BREAK);
-  lv_obj_set_style_local_text_color(txtManDist, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GREEN);
-  lv_obj_set_style_local_text_font(txtManDist, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
+  txtManDist = lv_label_create(lv_screen_active());
+  lv_obj_set_style_text_color(txtManDist, LV_COLOR_GREEN, LV_PART_MAIN);
+  lv_obj_set_style_text_font(txtManDist, &jetbrains_mono_42, LV_PART_MAIN);
   lv_obj_set_width(txtManDist, LV_HOR_RES);
   lv_label_set_text_static(txtManDist, "--M");
-  lv_label_set_align(txtManDist, LV_LABEL_ALIGN_CENTER);
-  lv_obj_align(txtManDist, nullptr, LV_ALIGN_CENTER, 0, 90);
+  lv_obj_set_style_text_align(txtManDist, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_align_to(txtManDist, nullptr, LV_ALIGN_CENTER, 0, 90);
 
   // Route Progress
-  barProgress = lv_bar_create(lv_scr_act(), nullptr);
+  barProgress = lv_bar_create(lv_screen_active());
   lv_obj_set_size(barProgress, 200, 20);
-  lv_obj_align(barProgress, nullptr, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
-  lv_obj_set_style_local_bg_color(barProgress, LV_BAR_PART_BG, LV_STATE_DEFAULT, lv_color_hex(0x222222));
-  lv_obj_set_style_local_bg_color(barProgress, LV_BAR_PART_INDIC, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
-  lv_bar_set_anim_time(barProgress, 500);
+  lv_obj_align_to(barProgress, nullptr, LV_ALIGN_BOTTOM_MID, 0, -10);
+  lv_obj_set_style_bg_color(barProgress, lv_color_hex(0x222222), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(barProgress, LV_COLOR_ORANGE, LV_PART_INDICATOR);
+  lv_obj_set_style_anim_duration(barProgress, 500, LV_PART_INDICATOR);
   lv_bar_set_range(barProgress, 0, 100);
   lv_bar_set_value(barProgress, 0, LV_ANIM_OFF);
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  taskRefresh = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 }
 
 Navigation::~Navigation() {
-  lv_task_del(taskRefresh);
-  lv_obj_clean(lv_scr_act());
+  lv_timer_set_repeat_count(taskRefresh, 0);
+  lv_obj_clean(lv_screen_active());
 }
 
 void Navigation::Refresh() {
@@ -242,8 +240,8 @@ void Navigation::Refresh() {
     flag = navService.getFlag();
     const auto& image = GetIcon(flag);
     lv_img_set_src(imgFlag, image.fileName);
-    lv_obj_set_style_local_image_recolor_opa(imgFlag, LV_IMG_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_COVER);
-    lv_obj_set_style_local_image_recolor(imgFlag, LV_IMG_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_CYAN);
+    lv_obj_set_style_image_recolor_opa(imgFlag, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_image_recolor(imgFlag, LV_COLOR_CYAN, LV_PART_MAIN);
     lv_img_set_offset_y(imgFlag, image.offset);
   }
 
@@ -261,9 +259,9 @@ void Navigation::Refresh() {
     progress = navService.getProgress();
     lv_bar_set_value(barProgress, progress, LV_ANIM_OFF);
     if (progress > 90) {
-      lv_obj_set_style_local_bg_color(barProgress, LV_BAR_PART_INDIC, LV_STATE_DEFAULT, LV_COLOR_RED);
+      lv_obj_set_style_bg_color(barProgress, LV_COLOR_RED, LV_PART_INDICATOR);
     } else {
-      lv_obj_set_style_local_bg_color(barProgress, LV_BAR_PART_INDIC, LV_STATE_DEFAULT, Colors::orange);
+      lv_obj_set_style_bg_color(barProgress, Colors::orange, LV_PART_INDICATOR);
     }
   }
 }

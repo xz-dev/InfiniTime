@@ -8,34 +8,32 @@
 using namespace Pinetime::Applications::Screens;
 
 namespace {
-  lv_obj_t* MakeLabel(lv_font_t* font,
+  lv_obj_t* MakeLabel(const lv_font_t* font,
                       lv_color_t color,
                       lv_label_long_mode_t longMode,
                       uint8_t width,
-                      lv_label_align_t labelAlignment,
+                      lv_text_align_t labelAlignment,
                       const char* text,
                       lv_obj_t* reference,
                       lv_align_t alignment,
                       int8_t x,
                       int8_t y) {
-    lv_obj_t* label = lv_label_create(lv_scr_act(), nullptr);
-    lv_obj_set_style_local_text_font(label, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, font);
-    lv_obj_set_style_local_text_color(label, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, color);
+    lv_obj_t* label = lv_label_create(lv_screen_active());
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
     lv_label_set_long_mode(label, longMode);
     if (width != 0) {
       lv_obj_set_width(label, width);
     }
-    lv_label_set_align(label, labelAlignment);
+    lv_obj_set_style_text_align(label, labelAlignment, LV_PART_MAIN);
     lv_label_set_text(label, text);
-    lv_obj_align(label, reference, alignment, x, y);
+    lv_obj_align_to(label, reference, alignment, x, y);
     return label;
   }
 
-  void btnRollEventHandler(lv_obj_t* obj, lv_event_t event) {
-    auto* screen = static_cast<Dice*>(obj->user_data);
-    if (event == LV_EVENT_CLICKED) {
-      screen->Roll();
-    }
+  void btnRollEventHandler(lv_event_t* event) {
+    auto* screen = static_cast<Dice*>(lv_event_get_user_data(event));
+    screen->Roll();
   }
 }
 
@@ -51,20 +49,20 @@ Dice::Dice(Controllers::MotionController& motionController,
 
   lv_obj_t* nCounterLabel = MakeLabel(&jetbrains_mono_bold_20,
                                       LV_COLOR_WHITE,
-                                      LV_LABEL_LONG_EXPAND,
+                                      LV_LABEL_LONG_WRAP,
                                       0,
-                                      LV_LABEL_ALIGN_CENTER,
+                                      LV_TEXT_ALIGN_CENTER,
                                       "count",
-                                      lv_scr_act(),
-                                      LV_ALIGN_IN_TOP_LEFT,
+                                      lv_screen_active(),
+                                      LV_ALIGN_TOP_LEFT,
                                       0,
                                       0);
 
   lv_obj_t* dCounterLabel = MakeLabel(&jetbrains_mono_bold_20,
                                       LV_COLOR_WHITE,
-                                      LV_LABEL_LONG_EXPAND,
+                                      LV_LABEL_LONG_WRAP,
                                       0,
-                                      LV_LABEL_ALIGN_CENTER,
+                                      LV_TEXT_ALIGN_CENTER,
                                       "sides",
                                       nCounterLabel,
                                       LV_ALIGN_OUT_RIGHT_MID,
@@ -72,31 +70,31 @@ Dice::Dice(Controllers::MotionController& motionController,
                                       0);
 
   nCounter.Create();
-  lv_obj_align(nCounter.GetObject(), nCounterLabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+  lv_obj_align_to(nCounter.GetObject(), nCounterLabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
   nCounter.SetValue(1);
 
   dCounter.Create();
-  lv_obj_align(dCounter.GetObject(), dCounterLabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+  lv_obj_align_to(dCounter.GetObject(), dCounterLabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
   dCounter.SetValue(6);
 
-  std::uniform_int_distribution<> distrib(0, resultColors.size() - 1);
+  std::uniform_int_distribution<> distrib(0, std::extent<decltype(resultColors)>::value - 1);
   currentColorIndex = distrib(gen);
 
   resultTotalLabel = MakeLabel(&jetbrains_mono_42,
                                resultColors[currentColorIndex],
-                               LV_LABEL_LONG_BREAK,
+                               LV_LABEL_LONG_WRAP,
                                120,
-                               LV_LABEL_ALIGN_CENTER,
+                               LV_TEXT_ALIGN_CENTER,
                                "",
-                               lv_scr_act(),
-                               LV_ALIGN_IN_TOP_RIGHT,
+                               lv_screen_active(),
+                               LV_ALIGN_TOP_RIGHT,
                                11,
                                38);
   resultIndividualLabel = MakeLabel(&jetbrains_mono_bold_20,
                                     resultColors[currentColorIndex],
-                                    LV_LABEL_LONG_BREAK,
+                                    LV_LABEL_LONG_WRAP,
                                     90,
-                                    LV_LABEL_ALIGN_CENTER,
+                                    LV_TEXT_ALIGN_CENTER,
                                     "",
                                     resultTotalLabel,
                                     LV_ALIGN_OUT_BOTTOM_MID,
@@ -106,17 +104,17 @@ Dice::Dice(Controllers::MotionController& motionController,
   Roll();
   openingRoll = false;
 
-  btnRoll = lv_btn_create(lv_scr_act(), nullptr);
+  btnRoll = lv_btn_create(lv_screen_active());
   btnRoll->user_data = this;
-  lv_obj_set_event_cb(btnRoll, btnRollEventHandler);
+  lv_obj_add_event_cb(btnRoll, btnRollEventHandler, LV_EVENT_CLICKED, this);
   lv_obj_set_size(btnRoll, 240, 50);
-  lv_obj_align(btnRoll, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+  lv_obj_align_to(btnRoll, lv_screen_active(), LV_ALIGN_BOTTOM_MID, 0, 0);
 
   btnRollLabel = MakeLabel(&jetbrains_mono_bold_20,
                            LV_COLOR_WHITE,
-                           LV_LABEL_LONG_EXPAND,
+                           LV_LABEL_LONG_WRAP,
                            0,
-                           LV_LABEL_ALIGN_CENTER,
+                           LV_TEXT_ALIGN_CENTER,
                            Symbols::dice,
                            btnRoll,
                            LV_ALIGN_CENTER,
@@ -128,7 +126,7 @@ Dice::Dice(Controllers::MotionController& motionController,
   if (enableShakeForDice) {
     settingsController.setWakeUpMode(Pinetime::Controllers::Settings::WakeUpMode::Shake, true);
   }
-  refreshTask = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  refreshTask = lv_timer_create(RefreshTaskCallback, LV_DEF_REFR_PERIOD, this);
 }
 
 Dice::~Dice() {
@@ -137,8 +135,8 @@ Dice::~Dice() {
     settingsController.setWakeUpMode(Pinetime::Controllers::Settings::WakeUpMode::Shake, false);
     enableShakeForDice = false;
   }
-  lv_task_del(refreshTask);
-  lv_obj_clean(lv_scr_act());
+  lv_timer_set_repeat_count(refreshTask, 0);
+  lv_obj_clean(lv_screen_active());
 }
 
 void Dice::Refresh() {
@@ -146,7 +144,7 @@ void Dice::Refresh() {
   if (motionController.CurrentShakeSpeed() >= settingsController.GetShakeThreshold()) {
     if (currentRollHysteresis <= 0) {
       // this timestamp is used for the screen timeout
-      lv_disp_get_next(NULL)->last_activity_time = lv_tick_get();
+      //lv_display_get_next(NULL)->last_activity_time = lv_tick_get();
 
       Roll();
     }
@@ -193,7 +191,7 @@ void Dice::Roll() {
 }
 
 void Dice::NextColor() {
-  currentColorIndex = (currentColorIndex + 1) % resultColors.size();
-  lv_obj_set_style_local_text_color(resultTotalLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, resultColors[currentColorIndex]);
-  lv_obj_set_style_local_text_color(resultIndividualLabel, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, resultColors[currentColorIndex]);
+  currentColorIndex = (currentColorIndex + 1) % std::extent<decltype(resultColors)>::value;
+  lv_obj_set_style_text_color(resultTotalLabel, resultColors[currentColorIndex], LV_PART_MAIN);
+  lv_obj_set_style_text_color(resultIndividualLabel, resultColors[currentColorIndex], LV_PART_MAIN);
 }

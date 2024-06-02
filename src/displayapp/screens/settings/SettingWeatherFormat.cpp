@@ -59,5 +59,5 @@ SettingWeatherFormat::SettingWeatherFormat(Pinetime::Controllers::Settings& sett
 }
 
 SettingWeatherFormat::~SettingWeatherFormat() {
-  lv_obj_clean(lv_scr_act());
+  lv_obj_clean(lv_screen_active());
 }

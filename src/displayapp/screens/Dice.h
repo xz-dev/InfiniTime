@@ -26,12 +26,12 @@ namespace Pinetime {
         lv_obj_t* btnRollLabel;
         lv_obj_t* resultTotalLabel;
         lv_obj_t* resultIndividualLabel;
-        lv_task_t* refreshTask;
+        lv_timer_t* refreshTask;
         bool enableShakeForDice = false;
 
         std::mt19937 gen;
 
-        std::array<lv_color_t, 3> resultColors = {LV_COLOR_YELLOW, LV_COLOR_MAGENTA, LV_COLOR_AQUA};
+        const lv_color_t resultColors[3]  = {LV_COLOR_YELLOW, LV_COLOR_MAGENTA, LV_COLOR_AQUA};
         uint8_t currentColorIndex;
         void NextColor();
 

@@ -37,7 +37,7 @@ namespace Pinetime {
 
         bool OnTouchEvent(TouchEvents event) override;
         bool OnButtonPushed() override;
-        void UpdateSelected(lv_obj_t* object, lv_event_t event);
+        void UpdateSelected(lv_obj_t* object, lv_event_t* event);
         void CloseMenu();
 
         void Refresh() override;
@@ -60,7 +60,7 @@ namespace Pinetime {
         // Lines making up the side cover
         lv_obj_t* lineBattery;
 
-        lv_point_t lineBatteryPoints[2];
+        lv_point_precise_t lineBatteryPoints[2];
 
         lv_obj_t* logoPine;
 
@@ -94,7 +94,7 @@ namespace Pinetime {
         void SetBatteryLevel(uint8_t batteryPercent);
         void ToggleBatteryIndicatorColor(bool showSideCover);
 
-        lv_task_t* taskRefresh;
+        lv_timer_t* taskRefresh;
         lv_font_t* font_teko = nullptr;
         lv_font_t* font_bebas = nullptr;
       };

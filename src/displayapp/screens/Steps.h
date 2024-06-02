@@ -23,7 +23,7 @@ namespace Pinetime {
         ~Steps() override;
 
         void Refresh() override;
-        void lapBtnEventHandler(lv_event_t event);
+        void lapBtnEventHandler(lv_event_t* event);
 
       private:
         Controllers::MotionController& motionController;
@@ -39,7 +39,7 @@ namespace Pinetime {
 
         uint32_t stepsCount;
 
-        lv_task_t* taskRefresh;
+        lv_timer_t* taskRefresh;
       };
     }
 

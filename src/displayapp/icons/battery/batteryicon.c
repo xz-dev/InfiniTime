@@ -41,7 +41,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BATTERYIC
 
 const lv_img_dsc_t batteryicon = {
   {
-    LV_IMG_CF_INDEXED_1BIT,
+    LV_COLOR_FORMAT_I1,
     0,
     0,
     12,

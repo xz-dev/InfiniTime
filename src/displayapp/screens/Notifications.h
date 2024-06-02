@@ -51,7 +51,7 @@ namespace Pinetime {
             return running;
           }
 
-          void OnCallButtonEvent(lv_obj_t*, lv_event_t event);
+          void OnCallButtonEvent(lv_obj_t*, lv_event_t* event);
 
         private:
           lv_obj_t* container;
@@ -80,7 +80,7 @@ namespace Pinetime {
         bool validDisplay = false;
         bool afterDismissNextMessageFromAbove = false;
 
-        lv_point_t timeoutLinePoints[2] {{0, 1}, {239, 1}};
+        lv_point_precise_t timeoutLinePoints[2] {{0, 1}, {239, 1}};
         lv_obj_t* timeoutLine = nullptr;
         TickType_t timeoutTickCountStart;
 
@@ -89,7 +89,7 @@ namespace Pinetime {
 
         bool dismissingNotification = false;
 
-        lv_task_t* taskRefresh;
+        lv_timer_t* taskRefresh;
       };
     }
   }

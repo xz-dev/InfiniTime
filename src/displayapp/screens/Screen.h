@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include "displayapp/TouchEvents.h"
+#include <displayapp/FormatHelper.h>
 #include <lvgl/lvgl.h>
+
 
 namespace Pinetime {
   namespace Applications {
@@ -19,7 +21,7 @@ namespace Pinetime {
 
         virtual ~Screen() = default;
 
-        static void RefreshTaskCallback(lv_task_t* task);
+        static void RefreshTaskCallback(lv_timer_t* task);
 
         bool IsRunning() const {
           return running;
