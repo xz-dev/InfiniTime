@@ -40,6 +40,7 @@ NimbleController::NimbleController(Pinetime::System::SystemTask& systemTask,
 
     currentTimeClient {dateTimeController},
     anService {systemTask, notificationManager},
+    remoteFont {*this, fs},
     alertNotificationClient {systemTask, notificationManager},
     currentTimeService {dateTimeController},
     musicService {*this},
@@ -88,6 +89,7 @@ void NimbleController::Init() {
   deviceInformationService.Init();
   currentTimeClient.Init();
   currentTimeService.Init();
+  remoteFont.Init();
   musicService.Init();
   weatherService.Init();
   navService.Init();

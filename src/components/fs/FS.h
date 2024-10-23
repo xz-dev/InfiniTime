@@ -26,6 +26,9 @@ namespace Pinetime {
       int DirRewind(lfs_dir_t* dir);
       int DirCreate(const char* path);
 
+      typedef int DirListCallback(FS&, lfs_info&);
+      int DirList(const char* dir_path, DirListCallback callback);
+
       lfs_ssize_t GetFSSize();
       int Rename(const char* oldPath, const char* newPath);
       int Stat(const char* path, lfs_info* info);

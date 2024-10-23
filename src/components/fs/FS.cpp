@@ -97,6 +97,38 @@ int FS::DirCreate(const char* path) {
   return lfs_mkdir(&lfs, path);
 }
 
+int FS::DirList(const char* dir_path, DirListCallback callback) {
+  lfs_dir_t dir;
+  int err = lfs_dir_open(&lfs, &dir, dir_path);
+  if (err) {
+    return err; // Return error if directory cannot be opened
+  }
+
+  struct lfs_info info;
+
+  while (true) {
+    int res = lfs_dir_read(&lfs, &dir, &info);
+    if (res < 0) {
+      lfs_dir_close(&lfs, &dir); // Ensure directory is closed on error
+      return res;                // Return read error
+    }
+
+    if (res == 0) {
+      break; // End of directory
+    }
+
+    // Call the callback function with the file info
+    callback(*this, info);
+  }
+
+  err = lfs_dir_close(&lfs, &dir);
+  if (err) {
+    return err; // Return error if directory cannot be closed
+  }
+
+  return 0; // Success
+}
+
 int FS::Rename(const char* oldPath, const char* newPath) {
   return lfs_rename(&lfs, oldPath, newPath);
 }
