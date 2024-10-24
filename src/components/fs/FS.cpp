@@ -77,6 +77,10 @@ int FS::FileDelete(const char* fileName) {
   return lfs_remove(&lfs, fileName);
 }
 
+int32_t FS::FileSize(lfs_t* lfs, lfs_file_t* file) {
+  return lfs_file_size(lfs, file);
+}
+
 int FS::DirOpen(const char* path, lfs_dir_t* lfs_dir) {
   return lfs_dir_open(&lfs, lfs_dir, path);
 }

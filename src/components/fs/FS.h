@@ -19,6 +19,7 @@ namespace Pinetime {
       int FileSeek(lfs_file_t* file_p, uint32_t pos);
 
       int FileDelete(const char* fileName);
+      int32_t FS::FileSize(lfs_t* lfs, lfs_file_t* file);
 
       int DirOpen(const char* path, lfs_dir_t* lfs_dir);
       int DirClose(lfs_dir_t* lfs_dir);

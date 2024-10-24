@@ -54,7 +54,20 @@ namespace Pinetime {
       res = ble_gatts_add_svcs(serviceDefinition);
       ASSERT(res == 0);
       fs.DirCreate(FONT_DIR);
-      ClearAllFonts();
+      ClearAllFontCache();
+    }
+
+    int RemoteFont::GetFont(uint16_t codePoint, lfs_file_t* file) {
+      char file_name[6];
+      snprintf(file_name, sizeof(file_name), "%u", codePoint);
+      char fullPath[sizeof(FONT_DIR) + sizeof(file_name) + 1];
+      snprintf(fullPath, sizeof(fullPath), "%s/%s", FONT_DIR, file_name);
+      int result = fs.FileOpen(file, fullPath, LFS_O_RDONLY);
+      if (result < 0) {
+        return result;
+      }
+      CacheNodeMoveToTop(codePoint);
+      return result;
     }
 
     int RemoteFont::RequestFont(uint16_t codePoint) {
@@ -78,17 +91,240 @@ namespace Pinetime {
       return 0;
     }
 
-    int RemoteFont::ClearAllFonts() {
-      return fs.DirList(FONT_DIR, &DeleteFonts);
+    int RemoteFont::CacheNodeAppend(uint16_t codePoint) {
+      // open cache file and append codePoint in new line
+      int result;
+      uint16_t node = cacheStart;
+      uint16_t nextNode;
+      lfs_file_t cacheFile;
+      char cachePath[sizeof(FONT_DIR) + 6];
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, node);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      // read the first node
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&node), sizeof(node));
+      if (result < 0) {
+        // if file is empty, the next node is the end
+        nextNode = cacheEnd;
+      } else {
+        // read the next node
+        result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&nextNode), sizeof(nextNode));
+        if (result < 0) {
+          return result;
+        }
+      }
+      // update the start node
+      result = fs.FileSeek(&cacheFile, 0);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&codePoint), sizeof(codePoint));
+      if (result < 0) {
+        return result;
+      }
+      // create new node file, name is the codePoint, and write the start node and the next node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, codePoint);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&node), sizeof(node));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&nextNode), sizeof(nextNode));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      if (result < 0) {
+        return result;
+      }
+      // update the next node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, nextNode);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&codePoint), sizeof(codePoint));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      return result;
+    }
+
+    int RemoteFont::CacheNodeMoveToTop(uint16_t codePoint) {
+      uint16_t node;
+      lfs_file_t cacheFile;
+      char cachePath[sizeof(FONT_DIR) + 6];
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, codePoint);
+      int result = fs.FileOpen(&cacheFile, cachePath, LFS_O_RDONLY);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&node), sizeof(node));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      if (result < 0) {
+        return result;
+      }
+      if (node == cacheStart) {
+        return 0;
+      }
+      result = CacheNodeDelete(codePoint);
+      if (result < 0) {
+        return result;
+      }
+      return CacheNodeAppend(codePoint);
+    }
+
+    int RemoteFont::CacheNodeDelete(uint16_t node) {
+      lfs_file_t cacheFile;
+      char cachePath[sizeof(FONT_DIR) + 6];
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, node);
+      uint16_t lastNode;
+      uint16_t nextNode;
+      int result;
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_RDONLY);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&lastNode), sizeof(lastNode));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&nextNode), sizeof(nextNode));
+      if (result < 0) {
+        return result;
+      }
+      // delete the node file
+      result = fs.FileClose(&cacheFile);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileDelete(cachePath);
+      if (result < 0) {
+        return result;
+      }
+      // update the last node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, lastNode);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      // seek 2 bytes from the end
+      result = fs.FileSeek(&cacheFile, sizeof(lastNode));
+      if (result < 0) {
+        return result;
+      }
+      // write the next node to last node
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&nextNode), sizeof(nextNode));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      // update the next node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, nextNode);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      // write the last node to next node
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&lastNode), sizeof(lastNode));
+      if (result < 0) {
+        return result;
+      }
+      return fs.FileClose(&cacheFile);
+    }
+
+    int RemoteFont::CacheNodeRemoveOldest(uint16_t& oldestNode) {
+      uint16_t node = cacheEnd;
+      uint16_t lastNode;
+      uint16_t last2Node;
+      int result;
+      lfs_file_t cacheFile;
+      char cachePath[sizeof(FONT_DIR) + 6];
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, node);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&lastNode), sizeof(lastNode));
+      if (result < 0) {
+        return result;
+      }
+      oldestNode = lastNode;
+      result = fs.FileClose(&cacheFile);
+      if (result < 0) {
+        return result;
+      }
+      // open the last node file and read the next last node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, lastNode);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileRead(&cacheFile, reinterpret_cast<uint8_t*>(&last2Node), sizeof(last2Node));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      // delete the last node file
+      result = fs.FileDelete(cachePath);
+      if (result < 0) {
+        return result;
+      }
+      // update the last2 node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, last2Node);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      // seek 2 bytes from the end
+      result = fs.FileSeek(&cacheFile, sizeof(last2Node));
+      if (result < 0) {
+        return result;
+      }
+      // write the end node to last2 node
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&cacheEnd), sizeof(cacheEnd));
+      if (result < 0) {
+        return result;
+      }
+      result = fs.FileClose(&cacheFile);
+      if (result < 0) {
+        return result;
+      }
+      // update the end node
+      snprintf(cachePath, sizeof(cachePath), "%s/%u", FONT_DIR, cacheEnd);
+      result = fs.FileOpen(&cacheFile, cachePath, LFS_O_CREAT | LFS_O_RDWR);
+      if (result < 0) {
+        return result;
+      }
+      // write the last2 node to end node
+      result = fs.FileWrite(&cacheFile, reinterpret_cast<const uint8_t*>(&last2Node), sizeof(last2Node));
+      if (result < 0) {
+        return result;
+      }
+      return fs.FileClose(&cacheFile);
+    }
+
+    int RemoteFont::ClearAllFontCache() {
+      return fs.DirList(FONT_DIR, DeleteFonts);
     }
 
     int RemoteFont::OnDownloadFont(struct ble_gatt_access_ctxt* ctxt) {
       uint16_t codePoint = static_cast<uint16_t>(ctxt->om->om_data[0] << 8 | ctxt->om->om_data[1]);
       char file_name[6];
       snprintf(file_name, sizeof(file_name), "%u", codePoint);
-      std::string fontFileName = std::string(FONT_DIR) + "/" + file_name;
+      char fullPath[sizeof(RemoteFont::FONT_DIR) + sizeof(file_name) + 1];
+      snprintf(fullPath, sizeof(fullPath), "%s/%s", FONT_DIR, file_name);
       lfs_file_t file;
-      int result = fs.FileOpen(&file, fontFileName.c_str(), LFS_O_CREAT | LFS_O_RDWR | LFS_O_TRUNC);
+      int result = fs.FileOpen(&file, fullPath, LFS_O_CREAT | LFS_O_RDWR | LFS_O_TRUNC);
       if (result < 0) {
         return result;
       }
@@ -110,7 +346,29 @@ namespace Pinetime {
         }
       }
 
-      return fs.FileClose(&file);
+      result = fs.FileClose(&file);
+      if (result < 0) {
+        return result;
+      }
+      result = CacheNodeAppend(codePoint);
+      if (result < 0) {
+        return result;
+      }
+      cacheSize++;
+      if (cacheSize > maxCacheSize) {
+        uint16_t oldestNode;
+        result = CacheNodeRemoveOldest(oldestNode);
+        if (result < 0) {
+          return result;
+        }
+        snprintf(fullPath, sizeof(fullPath), "%s/%u", FONT_DIR, oldestNode);
+        result = fs.FileDelete(fullPath);
+        if (result < 0) {
+          return result;
+        }
+        cacheSize--;
+      }
+      return cacheSize;
     }
   }
 }

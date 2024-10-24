@@ -20,7 +20,6 @@ namespace Pinetime {
 
       void Init();
       int GetFont(uint16_t codePoint, lfs_file_t* file);
-      bool IsBuildInFont(uint16_t codePoint);
       int RequestFont(uint16_t codePoint);
       // Font directory path
       static constexpr char const* const FONT_DIR = "/remote_fonts";
@@ -34,12 +33,22 @@ namespace Pinetime {
 
       uint16_t eventHandle;
 
-      void MoveToTop(uint16_t codePoint);
-      void RemoveOldestFont();
-      int ClearAllFonts();
+      int CacheNodeAppend(uint16_t codePoint);
+      int CacheNodeMoveToTop(uint16_t codePoint);
+      int CacheNodeDelete(uint16_t node);
+      int CacheNodeRemoveOldest(uint16_t& oldestNode);
+      int ClearAllFontCache();
 
       // Attributes
       static constexpr size_t maxCacheSize = 250;
+      // current cache size
+      size_t cacheSize = 0;
+      /**
+       * File containing the cache of code points
+       * Start -> Cache 1 <--> Cache 2 <--> Cache 3 <--> Cache 4 <--> Cache 5 <- End
+       */
+      static constexpr uint16_t const cacheStart = 0x0000;
+      static constexpr uint16_t const cacheEnd = 0xFFFF;
     };
   }
 }
